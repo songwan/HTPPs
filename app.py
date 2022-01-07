@@ -54,7 +54,7 @@ def body(
     x_train, x_test, y_train, y_test, degree, model, model_type, train_noise, test_noise  # noise may be interesting, but less important to the users
 ):
     introduction()
-    col1, col2 = st.beta_columns((1, 1))
+    col1, col2 = st.columns((1, 1))
 
     with col1:
         plot_placeholder = st.empty()
