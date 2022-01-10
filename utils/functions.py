@@ -4,7 +4,7 @@ import time
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, r2_score
 from sklearn.datasets import make_moons, make_circles, make_blobs
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -24,26 +24,26 @@ def local_css(file_name):
     suppress_st_warning=True,
     allow_output_mutation=True,
     show_spinner=True)
-def generate_data(dataset, n_samples, train_noise, test_noise, n_classes, uploaded_file=None):
+def generate_data(dataset, n_samples, n_classes, uploaded_file=None):
     if dataset == "moons":
-        x_train, y_train = make_moons(n_samples=n_samples, noise=train_noise)
-        x_test, y_test = make_moons(n_samples=n_samples, noise=test_noise)
+        x_train, y_train = make_moons(n_samples=n_samples)
+        x_test, y_test = make_moons(n_samples=n_samples)
     elif dataset == "circles":
-        x_train, y_train = make_circles(n_samples=n_samples, noise=train_noise)
-        x_test, y_test = make_circles(n_samples=n_samples, noise=test_noise)
+        x_train, y_train = make_circles(n_samples=n_samples)
+        x_test, y_test = make_circles(n_samples=n_samples)
     elif dataset == "blobs":
         x_train, y_train = make_blobs(
             n_features=2,
             n_samples=n_samples,
             centers=n_classes,
-            cluster_std=train_noise * 47 + 0.57,
+            cluster_std=1, 
             random_state=42,
         )
         x_test, y_test = make_blobs(
             n_features=2,
             n_samples=n_samples // 2,
             centers=2,
-            cluster_std=test_noise * 47 + 0.57,
+            cluster_std=1,
             random_state=42,
         )
 
@@ -66,7 +66,7 @@ def generate_data(dataset, n_samples, train_noise, test_noise, n_classes, upload
 # Plotting decision boundary is relevant for classification tasks
 
 def plot_decision_boundary_and_metrics(
-        model, x_train, y_train, x_test, y_test, metrics
+        model, x_train, y_train, x_test, y_test, metrics, model_type
 ):
     d = x_train.shape[1]
 
@@ -139,32 +139,63 @@ def plot_decision_boundary_and_metrics(
     ).update_xaxes(range=[x_min, x_max], title="x1").update_yaxes(
         range=[y_min, y_max], title="x2"
     )
+    
+    # Classification Models
+    if model_type in ('Neural Network'):
 
-    fig.add_trace(
-        go.Indicator(
-            mode="gauge+number+delta",
-            value=metrics["test_accuracy"],
-            title={"text": f"Accuracy (test)"},
-            domain={"x": [0, 1], "y": [0, 1]},
-            gauge={"axis": {"range": [0, 1]}},
-            delta={"reference": metrics["train_accuracy"]},
-        ),
-        row=2,
-        col=1,
-    )
+        fig.add_trace(
+            go.Indicator(
+                mode="gauge+number+delta",
+                value=metrics['test_accuracy'],
+                title={"text": f"Accuracy (test)"},
+                domain={"x": [0, 1], "y": [0, 1]},
+                gauge={"axis": {"range": [0, 1]}},
+                delta={"reference": metrics['train_accuracy']},
+            ),
+            row=2,
+            col=1,
+        )
 
-    fig.add_trace(
-        go.Indicator(
-            mode="gauge+number+delta",
-            value=metrics["test_f1"],
-            title={"text": f"F1 score (test)"},
-            domain={"x": [0, 1], "y": [0, 1]},
-            gauge={"axis": {"range": [0, 1]}},
-            delta={"reference": metrics["train_f1"]},
-        ),
-        row=2,
-        col=2,
-    )
+        fig.add_trace(
+            go.Indicator(
+                mode="gauge+number+delta",
+                value=metrics["test_f1"],
+                title={"text": f"F1 score (test)"},
+                domain={"x": [0, 1], "y": [0, 1]},
+                gauge={"axis": {"range": [0, 1]}},
+                delta={"reference": metrics["train_f1"]},
+            ),
+            row=2,
+            col=2,
+        )
+
+    # Regression Models
+    elif model_type in ("SVR"):
+        fig.add_trace(
+            go.Indicator(
+                mode="gauge+number+delta",
+                value=metrics['test_rsquare'],
+                title={"text": f"R-squared (test)"},
+                domain={"x": [0, 1], "y": [0, 1]},
+                gauge={"axis": {"range": [0, 1]}},
+                delta={"reference": metrics['train_rsquare']},
+            ),
+            row=2,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Indicator(
+                mode="gauge+number+delta",
+                value=metrics["test_mse"],
+                title={"text": f"MSE (test)"},
+                domain={"x": [0, 1], "y": [0, 1]},
+                gauge={"axis": {"range": [0, 1]}},
+                delta={"reference": metrics["train_mse"]},
+            ),
+            row=2,
+            col=2,
+        )
 
     fig.update_layout(
         height=700,
@@ -197,30 +228,30 @@ def train_regression_model(model, x_train, y_train, x_test, y_test):
     y_train_pred = model.predict(x_train)
     y_test_pred = model.predict(x_test)
 
-    train_accuracy = np.round(accuracy_score(y_train, y_train_pred), 3)
-    # train_f1 = np.round(f1_score(y_train, y_train_pred, average="weighted"), 3)
+    train_rsquare = np.round(r2_score(y_train, y_train_pred), 3)
+    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
 
-    test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
-    # test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
+    test_rsquare = np.round(r2_score(y_test, y_test_pred), 3)
+    test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
 
-    return model, train_accuracy, test_accuracy, duration
+    return model, train_rsquare, test_rsquare, train_mse, test_mse, duration
 
 
-def train_model(model, x_train, y_train, x_test, y_test):
-    t0 = time.time()
-
-    model.fit(x_train, y_train)
-    duration = time.time() - t0
-    y_train_pred = model.predict(x_train)
-    y_test_pred = model.predict(x_test)
-
-    train_accuracy = np.round(accuracy_score(y_train, y_train_pred), 3)
-    train_f1 = np.round(f1_score(y_train, y_train_pred, average="weighted"), 3)
-
-    test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
-    test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
-
-    return model, train_accuracy, train_f1, test_accuracy, test_f1, duration
+#def train_model(model, x_train, y_train, x_test, y_test):
+#    t0 = time.time()
+#
+#    model.fit(x_train, y_train)
+#    duration = time.time() - t0
+#    y_train_pred = model.predict(x_train)
+#    y_test_pred = model.predict(x_test)
+#
+#    train_accuracy = np.round(accuracy_score(y_train, y_train_pred), 3)
+#    train_f1 = np.round(f1_score(y_train, y_train_pred, average="weighted"), 3)
+#
+#    test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
+#    test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
+#
+#    return model, train_accuracy, train_f1, test_accuracy, test_f1, duration
 
 
 def img_to_bytes(img_path):
