@@ -2,25 +2,17 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-
-from models.NaiveBayes import nb_param_selector
-
+#from models.NaiveBayes import nb_param_selector
+#from models.RandomForet import rf_param_selector
+#from models.DecisionTree import dt_param_selector
+#from models.LogisticRegression import lr_param_selector
+#from models.KNearesNeighbors import knn_param_selector
+#from models.SVC import svc_param_selector
+#from models.GradientBoosting import gb_param_selector
+from models.SVR import svr_param_selector
 from models.NeuralNetwork import nn_param_selector
 
-from models.RandomForet import rf_param_selector
-
-from models.DecisionTree import dt_param_selector
-
-from models.LogisticRegression import lr_param_selector
-
-from models.KNearesNeighbors import knn_param_selector
-
-from models.SVC import svc_param_selector
-
-from models.GradientBoosting import gb_param_selector
-
 from models.utils import model_imports
-
 from utils.functions import img_to_bytes
 
 # current_data: pd.DataFrame = None
@@ -45,7 +37,7 @@ def introduction():
 
 
 def dataset_selector():
-    dataset_container = st.sidebar.beta_expander("Configure a dataset", True)
+    dataset_container = st.sidebar.expander("Configure a dataset", True)
     global current_data
 
     with dataset_container:
@@ -69,28 +61,7 @@ def dataset_selector():
         st.write("#### Or, choose a pre-loaded dataset")
         dataset = st.selectbox("Choose a dataset", ("moons", "circles", "blobs"))
 
-        n_samples = st.number_input(
-            "Subset to a Number of samples:",
-            min_value=50,
-            max_value=1000,
-            step=10,
-            value=300,
-        )
-
-        train_noise = st.slider(
-            "Set the noise (train data)",
-            min_value=0.01,
-            max_value=0.2,
-            step=0.005,
-            value=0.06,
-        )
-        test_noise = st.slider(
-            "Set the noise (test data)",
-            min_value=0.01,
-            max_value=1.0,
-            step=0.005,
-            value=train_noise,
-        )
+        n_samples = 1000 # for sample datasets
 
         if dataset == "blobs":
             n_classes = st.number_input("centers", 2, 5, 2, 1)
@@ -103,58 +74,60 @@ def dataset_selector():
             n_classes = None
             dataset = "upload"
 
-    return dataset, n_samples, train_noise, test_noise, n_classes
+    return dataset, n_samples, n_classes
 
 
 def model_selector():
-    model_training_container = st.sidebar.beta_expander("Train a model", True)
+    model_training_container = st.sidebar.expander("Train a model", True)
     with model_training_container:
         model_type = st.selectbox(
             "Choose a model",
             (
-                "Logistic Regression", # Linear
-                "Decision Tree", #
-                "Random Forest", #
-                "Gradient Boosting",  #
+                #"Logistic Regression", # Linear
+                #"Decision Tree", #
+                #"Random Forest", #
+                #"Gradient Boosting",  #
                 "Neural Network", #
-                "K Nearest Neighbors", #
-                "Gaussian Naive Bayes", # remove
-                "SVC", # SVR
+                #"K Nearest Neighbors", #
+                #"Gaussian Naive Bayes", # remove
+                #"SVC", # SVR
+                "SVR",
             ),
         )
 
-        if model_type == "Logistic Regression":
-            model = lr_param_selector()
+        #if model_type == "Logistic Regression":
+        #    model = lr_param_selector()
 
-        elif model_type == "Decision Tree":
-            model = dt_param_selector()
+        #elif model_type == "Decision Tree":
+        #    model = dt_param_selector()
 
-        elif model_type == "Random Forest":
-            model = rf_param_selector()
+        #elif model_type == "Random Forest":
+        #    model = rf_param_selector()
 
-        elif model_type == "Neural Network":
+        if model_type == "Neural Network":
             model = nn_param_selector()
 
-        elif model_type == "K Nearest Neighbors":
-            model = knn_param_selector()
+        #elif model_type == "K Nearest Neighbors":
+        #    model = knn_param_selector()
 
-        elif model_type == "Gaussian Naive Bayes":
-            model = nb_param_selector()
+        #elif model_type == "Gaussian Naive Bayes":
+        #    model = nb_param_selector()
 
-        elif model_type == "SVC":
-            model = svc_param_selector()
+        #elif model_type == "SVC":
+        #    model = svc_param_selector()
 
-        elif model_type == "Gradient Boosting":
-            model = gb_param_selector()
+        #elif model_type == "Gradient Boosting":
+        #    model = gb_param_selector()
+        
+        elif model_type == "SVR":
+            model = svr_param_selector()
 
     return model_type, model
 
 
 def generate_snippet(
-    model, model_type, n_samples, train_noise, test_noise, dataset, degree
+    model, model_type, n_samples, dataset, degree
 ):
-    train_noise = np.round(train_noise, 3)
-    test_noise = np.round(test_noise, 3)
 
     model_text_rep = repr(model)
     model_import = model_imports[model_type]
@@ -169,19 +142,19 @@ def generate_snippet(
     if dataset == "moons":
         dataset_import = "from sklearn.datasets import make_moons"
         train_data_def = (
-            f"x_train, y_train = make_moons(n_samples={n_samples}, noise={train_noise})"
+            f"x_train, y_train = make_moons(n_samples={n_samples})"
         )
-        test_data_def = f"x_test, y_test = make_moons(n_samples={n_samples // 2}, noise={test_noise})"
+        test_data_def = f"x_test, y_test = make_moons(n_samples={n_samples // 2})"
 
     elif dataset == "circles":
         dataset_import = "from sklearn.datasets import make_circles"
-        train_data_def = f"x_train, y_train = make_circles(n_samples={n_samples}, noise={train_noise})"
-        test_data_def = f"x_test, y_test = make_circles(n_samples={n_samples // 2}, noise={test_noise})"
+        train_data_def = f"x_train, y_train = make_circles(n_samples={n_samples})"
+        test_data_def = f"x_test, y_test = make_circles(n_samples={n_samples // 2})"
 
     elif dataset == "blobs":
         dataset_import = "from sklearn.datasets import make_blobs"
-        train_data_def = f"x_train, y_train = make_blobs(n_samples={n_samples}, clusters=2, noise={train_noise* 47 + 0.57})"
-        test_data_def = f"x_test, y_test = make_blobs(n_samples={n_samples // 2}, clusters=2, noise={test_noise* 47 + 0.57})"
+        train_data_def = f"x_train, y_train = make_blobs(n_samples={n_samples}, clusters=2)"
+        test_data_def = f"x_test, y_test = make_blobs(n_samples={n_samples // 2}, clusters=2)"
 
     snippet = f"""
     >>> {dataset_import}
