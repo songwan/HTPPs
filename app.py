@@ -6,7 +6,8 @@ from utils.functions import (
     get_model_tips,
     get_model_url,
     plot_decision_boundary_and_metrics,
-    train_model,
+    train_classification_model,
+    train_regression_model,
 )
 
 from utils.ui import (
@@ -24,11 +25,11 @@ st.set_page_config(
 
 
 def sidebar_controllers():
-    dataset, n_samples, train_noise, test_noise, n_classes = dataset_selector()
+    dataset, n_samples, n_classes = dataset_selector()
     model_type, model = model_selector()
     #if dataset == "upload":
     x_train, y_train, x_test, y_test = generate_data(
-        dataset, n_samples, train_noise, test_noise, n_classes
+        dataset, n_samples, n_classes
     )
     st.sidebar.header("Feature engineering")
     degree = polynomial_degree_selector()
@@ -44,14 +45,12 @@ def sidebar_controllers():
         x_test,
         y_test,
         degree,
-        train_noise,
-        test_noise,
         n_samples,
     )
 
 
 def body(
-    x_train, x_test, y_train, y_test, degree, model, model_type, train_noise, test_noise  # noise may be interesting, but less important to the users
+    x_train, x_test, y_train, y_test, degree, model, model_type # noise may be interesting, but less important to the users
 ):
     introduction()
     col1, col2 = st.columns((1, 1))
@@ -70,30 +69,50 @@ def body(
     x_train, x_test = add_polynomial_features(x_train, x_test, degree)
     model_url = get_model_url(model_type)
 
-    (
-        model,
-        train_accuracy,
-        train_f1,
-        test_accuracy,
-        test_f1,
-        duration,
-    ) = train_model(model, x_train, y_train, x_test, y_test)
+    # Classification Models -> Accuracy, F1 score
+    if model_type in ('Neural Network'):
+        (
+            model,
+            train_accuracy,
+            train_f1,
+            test_accuracy,
+            test_f1,
+            duration,
+        ) = train_classification_model(model, x_train, y_train, x_test, y_test)
 
-    metrics = {
-        "train_accuracy": train_accuracy,
-        "train_f1": train_f1,
-        "test_accuracy": test_accuracy,
-        "test_f1": test_f1,
-    }
+        metrics = {
+            "train_accuracy": train_accuracy,
+            "train_f1": train_f1,
+            "test_accuracy": test_accuracy,
+            "test_f1": test_f1,
+        }
+    
+    # Regression Models -> R-squared, MSE
+    elif model_type in ('SVR'):
+        (   
+            model, 
+            train_rsquare, 
+            train_mse, 
+            test_rsquare, 
+            test_mse, 
+            duration,
+        ) = train_regression_model(model, x_train, y_train, x_test, y_test)
+
+        metrics = {
+            "train_rsquare": train_rsquare,
+            "train_mse": train_mse,
+            "test_rsquare": test_rsquare,
+            "test_mse": test_mse,
+        }
 
     snippet = generate_snippet(
-        model, model_type, n_samples, train_noise, test_noise, dataset, degree
+        model, model_type, n_samples, dataset, degree
     )
 
     model_tips = get_model_tips(model_type)
 
     fig = plot_decision_boundary_and_metrics(
-        model, x_train, y_train, x_test, y_test, metrics
+        model, x_train, y_train, x_test, y_test, metrics, model_type
     )
 
     plot_placeholder.plotly_chart(fig, True)
@@ -116,8 +135,6 @@ if __name__ == "__main__":
         x_test,
         y_test,
         degree,
-        train_noise,
-        test_noise,
         n_samples,
     ) = sidebar_controllers()
     body(
@@ -128,6 +145,4 @@ if __name__ == "__main__":
         degree,
         model,
         model_type,
-        train_noise,
-        test_noise,
     )
