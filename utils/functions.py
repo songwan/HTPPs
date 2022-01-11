@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, r2_score
-from sklearn.datasets import make_moons, make_circles, make_blobs
+from sklearn.datasets import make_moons, make_circles, make_blobs, make_regression
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
@@ -31,6 +31,9 @@ def generate_data(dataset, n_samples, n_classes, uploaded_file=None):
     elif dataset == "circles":
         x_train, y_train = make_circles(n_samples=n_samples)
         x_test, y_test = make_circles(n_samples=n_samples)
+    elif dataset == "regress":
+        x_train, y_train = make_regression(n_samples=n_samples)
+        x_test, y_test = make_regression(n_samples=n_samples)
     elif dataset == "blobs":
         x_train, y_train = make_blobs(
             n_features=2,

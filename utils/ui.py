@@ -59,9 +59,9 @@ def dataset_selector():
             #    st.session_state.cur_data = current_data
 
         st.write("#### Or, choose a pre-loaded dataset")
-        dataset = st.selectbox("Choose a dataset", ("moons", "circles", "blobs"))
+        dataset = st.selectbox("Choose a dataset", ("moons", "circles", "blobs", "regress"))
 
-        n_samples = 1000 # for sample datasets
+        n_samples = 100 # for sample datasets
 
         if dataset == "blobs":
             n_classes = st.number_input("centers", 2, 5, 2, 1)
@@ -155,6 +155,10 @@ def generate_snippet(
         dataset_import = "from sklearn.datasets import make_blobs"
         train_data_def = f"x_train, y_train = make_blobs(n_samples={n_samples}, clusters=2)"
         test_data_def = f"x_test, y_test = make_blobs(n_samples={n_samples // 2}, clusters=2)"
+    elif dataset == "regress":
+        dataset_import = "from sklearn.datasets import make_regression"
+        train_data_def = f"x_train, y_train = make_regression(n_samples={n_samples})"
+        test_data_def = f"x_test, y_test = make_regression(n_samples={n_samples // 2})"
 
     snippet = f"""
     >>> {dataset_import}
