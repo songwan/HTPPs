@@ -27,9 +27,10 @@ st.set_page_config(
 
 def sidebar_controllers():
     dataset = dataset_selector() # loads global variable current_data 
-    model_type, model = model_selector() 
     #if dataset == "upload":
     x_train, y_train, x_test, y_test = generate_data(dataset)
+    model_type, model = model_selector() 
+
     st.sidebar.header("Feature engineering")
     degree = polynomial_degree_selector()
     footer()
@@ -65,27 +66,9 @@ def body(
 
     x_train, x_test = add_polynomial_features(x_train, x_test, degree)
     model_url = get_model_url(model_type)
-
-    # Classification Models -> Accuracy, F1 score
-    if model_type in ('Neural Network'):
-        (
-            model,
-            train_accuracy,
-            train_f1,
-            test_accuracy,
-            test_f1,
-            duration,
-        ) = train_classification_model(model, x_train, y_train, x_test, y_test)
-
-        metrics = {
-            "train_accuracy": train_accuracy,
-            "train_f1": train_f1,
-            "test_accuracy": test_accuracy,
-            "test_f1": test_f1,
-        }
     
     # Regression Models -> R-squared, MSE
-    elif model_type in ('SVR'):
+    if model_type in ('SVR'):
         (   
             model, 
             train_rsquare, 
