@@ -1,0 +1,5 @@
+[theme]
+base="light"
+primaryColor="green" 
+
+# https://docs.streamlit.io/library/advanced-features/configuration#set-configuration-options
