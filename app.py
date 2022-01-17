@@ -5,7 +5,7 @@ from utils.functions import (
     generate_data,
     get_model_tips,
     get_model_url,
-    plot_decision_boundary_and_metrics,
+    plot_prediction_and_metrics,
     train_classification_model,
     train_regression_model,
 )
@@ -13,7 +13,7 @@ from utils.functions import (
 from utils.ui import (
     dataset_selector,
     footer,
-    generate_snippet,
+    #generate_snippet,
     polynomial_degree_selector,
     introduction,
     model_selector,
@@ -25,19 +25,16 @@ st.set_page_config(
 
 
 def sidebar_controllers():
-    dataset, n_samples, n_classes = dataset_selector()
-    model_type, model = model_selector()
+    dataset = dataset_selector() # loads global variable current_data 
+    model_type, model = model_selector() 
     #if dataset == "upload":
-    x_train, y_train, x_test, y_test = generate_data(
-        dataset, n_samples, n_classes
-    )
+    x_train, y_train, x_test, y_test = generate_data(dataset)
     st.sidebar.header("Feature engineering")
     degree = polynomial_degree_selector()
     footer()
 
     return (
         dataset,
-        n_classes,
         model_type,
         model,
         x_train,
@@ -45,7 +42,6 @@ def sidebar_controllers():
         x_test,
         y_test,
         degree,
-        n_samples,
     )
 
 
@@ -88,14 +84,16 @@ def body(
         }
     
     # Regression Models -> R-squared, MSE
-    elif model_type in ('SVR'):
+    elif model_type in ('SVR', 'Keras Neural Network'):
         (   
             model, 
             train_rsquare, 
-            train_mse, 
             test_rsquare, 
+            train_mse, 
             test_mse, 
             duration,
+            y_train_pred,
+            y_test_pred,
         ) = train_regression_model(model, x_train, y_train, x_test, y_test)
 
         metrics = {
@@ -105,14 +103,15 @@ def body(
             "test_mse": test_mse,
         }
 
-    snippet = generate_snippet(
-        model, model_type, n_samples, dataset, degree
-    )
+    #snippet = generate_snippet(
+    #    model, model_type, dataset, degree
+    #)
+# ----------------------------------------------------------------------------------------------------
 
     model_tips = get_model_tips(model_type)
 
-    fig = plot_decision_boundary_and_metrics(
-        model, x_train, y_train, x_test, y_test, metrics, model_type
+    fig = plot_prediction_and_metrics(
+        y_train, y_test, metrics, y_train_pred, y_test_pred
     )
 
     plot_placeholder.plotly_chart(fig, True)
@@ -127,7 +126,6 @@ def body(
 if __name__ == "__main__":
     (
         dataset,
-        n_classes,
         model_type,
         model,
         x_train,
@@ -135,7 +133,6 @@ if __name__ == "__main__":
         x_test,
         y_test,
         degree,
-        n_samples,
     ) = sidebar_controllers()
     body(
         x_train,
