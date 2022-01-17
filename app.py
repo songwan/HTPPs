@@ -7,6 +7,7 @@ from utils.functions import (
     get_model_url,
     plot_prediction_and_metrics,
     train_classification_model,
+    train_keras_model,
     train_regression_model,
 )
 
@@ -84,7 +85,7 @@ def body(
         }
     
     # Regression Models -> R-squared, MSE
-    elif model_type in ('SVR', 'Keras Neural Network'):
+    elif model_type in ('SVR'):
         (   
             model, 
             train_rsquare, 
@@ -103,10 +104,25 @@ def body(
             "test_mse": test_mse,
         }
 
-    #snippet = generate_snippet(
-    #    model, model_type, dataset, degree
-    #)
-# ----------------------------------------------------------------------------------------------------
+    # Keras NN -> R-squared, MSE
+    elif model_type in ('Keras Neural Network'):
+        (   
+            model, 
+            train_rsquare, 
+            test_rsquare, 
+            train_mse, 
+            test_mse, 
+            duration,
+            y_train_pred,
+            y_test_pred,
+        ) = train_keras_model(model, x_train, y_train, x_test, y_test)
+
+        metrics = {
+            "train_rsquare": train_rsquare, 
+            "train_mse": train_mse, 
+            "test_rsquare": test_rsquare, 
+            "test_mse": test_mse, 
+        }
 
     model_tips = get_model_tips(model_type)
 

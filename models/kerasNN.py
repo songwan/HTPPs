@@ -36,11 +36,14 @@ def knn_param_selector():
     #return model
     
     model = Sequential()
-    model.add(Dense(units=hidden_layer_sizes[0], activation=hidden_layer_activations[0], input_shape=(5,)))
+    model.add(Dense(units=hidden_layer_sizes[0], activation=hidden_layer_activations[0], input_shape=(8,))) ########################### change to x_train.shape[1] i.e.# of vars
     
     if number_hidden_layers > 1: # 3
         for i in range(1, number_hidden_layers): # 0 1 2 -> 1, 2 
             model.add(Dense(units=hidden_layer_sizes[i], activation=hidden_layer_activations[i]))
+
+    # output layer
+    model.add(Dense(1)) ##########################################
 
     model.compile(loss=loss, optimizer=optimizer, metrics=nn_metrics)
 

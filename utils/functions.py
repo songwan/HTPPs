@@ -153,9 +153,27 @@ def train_classification_model(model, x_train, y_train, x_test, y_test):
     return model, train_accuracy, train_f1, test_accuracy, test_f1, duration
 
 
+
+def train_keras_model(model, x_train, y_train, x_test, y_test):
+    t0 = time.time()
+    y_train_pred = model.predict(x_train)[:,0]
+    y_test_pred = model.predict(x_test)[:,0]
+    duration = time.time() - t0
+    
+    train_rsquare = np.round(r2_score(y_train, y_train_pred), 3)
+    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+
+    test_rsquare = np.round(r2_score(y_test, y_test_pred), 3)
+    test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
+
+    st.text(f'{y_train_pred.shape}, {y_test_pred.shape}, {y_train.shape}, {y_test.shape}') ####################################
+    st.text(f'{train_rsquare},{test_rsquare}') ####################################
+
+    return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
+
+
 def train_regression_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
-
     model.fit(x_train, y_train)
     duration = time.time() - t0
     y_train_pred = model.predict(x_train)
