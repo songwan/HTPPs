@@ -11,5 +11,5 @@ The datasets are collected manually and from UAV images.
 ...
 
 <p align="center">
-   <img src="./images/demo-htp.gif">
+   <img src="./images/demo-htpp.gif">
 </p>
