@@ -105,14 +105,14 @@ def plot_prediction_and_metrics(
     )
 
     # st.text(f'{metrics["train_rsquare"]}, {metrics["test_rsquare"]}')
-
+    # st.write('y_train_var', y_train.var())
     fig.add_trace(
         go.Indicator(
             mode="gauge+number+delta",
             value=metrics["test_mse"],
             title={"text": f"MSE (test)"},
             domain={"x": [0, 1], "y": [0, 1]},
-            gauge={"axis": {"range": [0, 1]}},
+            gauge={"axis": {"range": [0, y_train.var()]}},
             delta={"reference": metrics["train_mse"]},
         ),
         row=2,
@@ -138,14 +138,14 @@ def train_keras_model(model, x_train, y_train, x_test, y_test):
     normed_x_train = norm(x_train)
     normed_x_test = norm(x_test)
 
-    epochs = 100 #################################################### change as a parameter
+    epochs = 10 #################################################### change as a parameter
 
     # Fit the model
     history = model.fit(
         normed_x_train, y_train,
         epochs=epochs, validation_split = 0.2, verbose=0) #################################################### change as a parameter
 
-    # Predict the model
+    # Predict
     y_train_pred = model.predict(normed_x_train).flatten()
     y_test_pred =  model.predict(normed_x_test).flatten()
 
@@ -155,8 +155,8 @@ def train_keras_model(model, x_train, y_train, x_test, y_test):
     # - model.predict(): for actual prediction. It generates output predictions for the input samples
     # -------------------------------------------------------------------------------------
 
-    train_rsquare = np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
-    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+    train_rsquare =  np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
+    train_mse =  np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
     test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0,1]), 3)
     test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
 

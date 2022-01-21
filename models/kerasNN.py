@@ -118,19 +118,20 @@ def knn_param_selector(input_shape=None):
     #### Build Keras model
     model = Sequential()
     
-    if(len(layer_sizes)==0): # if parameters were not set (default setting)
-        number_layers = 1
+    if(len(layer_sizes)==0): # if parameters were not set (default setting) #################################################################### Change later
+        number_layers = 2
         model.add(Dense(units=5, activation='relu', input_shape=(input_shape,)))
+        model.add(Dense(units=1))
         
-    else: # if parameters were set from the sidebar
+    else: # if parameters were set from the sidebar 
         model.add(Dense(units=layer_sizes[0], activation=layer_activations[0], input_shape=(input_shape,))) # input layer
 
         if number_layers > 1:
             for i in range(1, (number_layers-1)):
                 model.add(Dense(units=layer_sizes[i], activation=layer_activations[i])) # hidden layers
 
-        model.add(Dense(units=layer_sizes[-1], activation=layer_activations[-1])) # output layer
-        # model.add(Dense(units=1)) # output layer
+        #model.add(Dense(units=layer_sizes[-1], activation=layer_activations[-1])) # output layer
+        model.add(Dense(units=1)) # output layer
 
     model.compile(loss=loss, optimizer=optimizer, metrics=nn_metrics)
 
