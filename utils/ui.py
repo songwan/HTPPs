@@ -159,16 +159,19 @@ def column_selector(current_data):
 
     st.dataframe(x.head(n=1))
     st.markdown("-----")
-
-    x_train_pd, x_test_pd, y_train_pd, y_test_pd = train_test_split(x, y, test_size=0.2, random_state=1234)
     
-    # convert to numpy array
-    x_train = x_train_pd.to_numpy()
-    x_test = x_test_pd.to_numpy()
-    y_train = y_train_pd.to_numpy()
-    y_test = y_test_pd.to_numpy()
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234)
+
+    # x_train_pd, x_test_pd, y_train_pd, y_test_pd = train_test_split(x, y, test_size=0.2, random_state=1234)
+
+    # # convert to numpy array
+    # x_train = x_train_pd.to_numpy()
+    # x_test = x_test_pd.to_numpy()
+    # y_train = y_train_pd.to_numpy()
+    # y_test = y_test_pd.to_numpy()
 
     input_shape = x.shape[1] # number of variables 
+
 
     return x_train, y_train, x_test, y_test, input_shape
 

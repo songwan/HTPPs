@@ -130,6 +130,8 @@ def knn_param_selector(input_shape=None):
                 model.add(Dense(units=layer_sizes[i], activation=layer_activations[i])) # hidden layers
 
         model.add(Dense(units=layer_sizes[-1], activation=layer_activations[-1])) # output layer
+        # model.add(Dense(units=1)) # output layer
 
     model.compile(loss=loss, optimizer=optimizer, metrics=nn_metrics)
+
     return model

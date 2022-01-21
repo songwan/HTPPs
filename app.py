@@ -66,7 +66,6 @@ def body(
 ):
     # introduction()
 
-
     st.subheader(f'{model_type} Results')
     col1, col2 = st.columns((1, 1))
 

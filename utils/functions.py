@@ -1,14 +1,15 @@
+from logging.config import valid_ident
 from pathlib import Path
 import base64
+from tabnanny import verbose
 import time
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, r2_score
 from sklearn.datasets import make_regression
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-
+from tensorflow import keras
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 
@@ -124,56 +125,61 @@ def plot_prediction_and_metrics(
 
     return fig
 
-# def train_classification_model(model, x_train, y_train, x_test, y_test):
-#     t0 = time.time()
-#     model.fit(x_train, y_train)
-#     duration = time.time() - t0
-#     y_train_pred = model.predict(x_train)
-#     y_test_pred = model.predict(x_test)
-
-#     train_accuracy = np.round(accuracy_score(y_train, y_train_pred), 3)
-#     train_f1 = np.round(f1_score(y_train, y_train_pred, average="weighted"), 3)
-
-#     test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
-#     test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
-
-#     return model, train_accuracy, train_f1, test_accuracy, test_f1, duration
-
-
-
 def train_keras_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
-    y_train_pred = model.predict(x_train)[:,0]
-    y_test_pred = model.predict(x_test)[:,0]
-    duration = time.time() - t0
     
-    train_rsquare = np.round(r2_score(y_train, y_train_pred), 3)
-    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+    # https://www.tensorflow.org/tutorials/keras/regression
 
-    test_rsquare = np.round(r2_score(y_test, y_test_pred), 3)
+    # Normalize data
+    def norm(x):
+        return (x - train_stats['mean']) / train_stats['std']
+
+    train_stats = x_train.describe().transpose()
+    normed_x_train = norm(x_train)
+    normed_x_test = norm(x_test)
+
+    epochs = 100 #################################################### change as a parameter
+
+    # Fit the model
+    history = model.fit(
+        normed_x_train, y_train,
+        epochs=epochs, validation_split = 0.2, verbose=0) #################################################### change as a parameter
+
+    # Predict the model
+    y_train_pred = model.predict(normed_x_train).flatten()
+    y_test_pred =  model.predict(normed_x_test).flatten()
+
+    # https://stackoverflow.com/questions/44843581/what-is-the-difference-between-model-fit-an-model-evaluate-in-keras
+    # - model.fit(): for training the model with the given inputs
+    # - model.evaluate(): for evaluating the already trained model using the validation (or test) data. Returns loss value and metrics values
+    # - model.predict(): for actual prediction. It generates output predictions for the input samples
+    # -------------------------------------------------------------------------------------
+
+    train_rsquare = np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
+    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+    test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0,1]), 3)
     test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
 
-    # st.text(f'{y_train_pred.shape}, {y_test_pred.shape}, {y_train.shape}, {y_test.shape}') ####################################
-    # st.text(f'{train_rsquare},{test_rsquare}') ####################################
+    duration = time.time() - t0
+
 
     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
 
 
 def train_regression_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
+
     model.fit(x_train, y_train)
-    duration = time.time() - t0
+
     y_train_pred = model.predict(x_train)
     y_test_pred = model.predict(x_test)
-    
-    # https://scikit-learn.org/dev/modules/generated/sklearn.metrics.r2_score.html
-    train_rsquare = np.round(r2_score(y_train, y_train_pred), 3)
-    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
 
-    test_rsquare = np.round(r2_score(y_test, y_test_pred), 3)
+    train_rsquare = np.round(np.square(np.corrcoef(y_train, y_train_pred)[0, 1]), 3)
+    train_mse = np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+    test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0, 1]), 3)
     test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
 
-    st.text(f'train_reg_model:{model},{train_rsquare},{test_rsquare}')
+    duration = time.time() - t0
 
     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
 
@@ -203,23 +209,3 @@ def set_sidebar_width(width):
         </style>
     ''',unsafe_allow_html=True)
     
-
-# def add_polynomial_features(x_train, x_test, degree):
-#     for d in range(2, degree + 1):
-#         x_train = np.concatenate(
-#             (
-#                 x_train,
-#                 x_train[:, 0].reshape(-1, 1) ** d,
-#                 x_train[:, 1].reshape(-1, 1) ** d,
-#             ),
-#             axis=1,
-#         )
-#         x_test = np.concatenate(
-#             (
-#                 x_test,
-#                 x_test[:, 0].reshape(-1, 1) ** d,
-#                 x_test[:, 1].reshape(-1, 1) ** d,
-#             ),
-#             axis=1,
-#         )
-#     return x_train, x_test
