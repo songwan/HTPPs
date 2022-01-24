@@ -6,6 +6,9 @@ from sqlalchemy import null
 import streamlit as st
 import copy
 import matplotlib.pyplot as plt
+import zipfile
+import os
+import shutil
 
 # import user-defined parameter selectors
 from models.Regression import regression_param_selector
@@ -191,4 +194,49 @@ def column_selector(current_data):
     return x_train, y_train, x_test, y_test, input_shape
 
 # -----------------------------------------------------------------------------------------------------------------
+def createFolder(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print ('Error: Creating directory. ' +  directory)
 
+# First need to save result to zip format
+def zip_dir(zip_name, dir_path):
+    # log("name : {}, path : {}".format(zip_name, dir_path))
+    # zip 파일 경로. dir_path와 같은 위치에, zip_name을 가진 .zip 폴더 생성.
+    zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
+    new_zips = zipfile.ZipFile(zip_path, 'w')
+    dir_path = dir_path + '/'
+ 
+    # 이 폴더 안의 모든 파일을 압축
+    for root, directory, files in os.walk(dir_path):
+        for file in files:
+            path = os.path.join(root, file)
+            # 압축할 파일 경로, 압축 파일 안에서 사용할 상대경로, 압축 타입(일반 압축)
+            new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
+ 
+    new_zips.close()
+ 
+    # 원본 폴더 삭제 (내용물과 함께 삭제)
+    shutil.rmtree(dir_path)
+
+# # Then link to streamlit download button 
+# @st.cache
+# def convert_df(df):
+# # IMPORTANT: Cache the conversion to prevent computation on every rerun
+#     return df.to_csv().encode('utf-8')
+
+# def download_result():
+#     text_contents = '''This is some text'''
+#     st.sidebar.download_button('Download some text', text_contents)
+
+#     csv = convert_df(read_csv('data/_output.csv')) # --------------------------------------
+
+#     with open("data/myfile.zip", "rb") as fp:
+#         btn = st.sidebar.download_button(
+#             label="Download ZIP",
+#             data=fp,
+#             file_name=f"myfile.zip",
+#             mime="application/zip"
+#         )

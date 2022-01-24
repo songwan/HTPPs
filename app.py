@@ -1,5 +1,6 @@
 import numpy as np
 import streamlit as st
+import pandas as pd
 from utils.functions import (
     # add_polynomial_features,
     # generate_data,
@@ -20,6 +21,9 @@ from utils.ui import (
     model_selector,
     parameter_selector,
     column_selector,
+    zip_dir,
+    createFolder,
+    # download_result,
 )
 
 st.set_page_config(
@@ -28,6 +32,7 @@ st.set_page_config(
 
 def sidebar_controllers():
 
+    createFolder('tmp_result') # temporary folder to save result
 
     current_data = dataset_selector() # loads global variable current_data 
     #if dataset == "upload":
@@ -46,10 +51,13 @@ def sidebar_controllers():
     # model_type, model = model_selector(input_shape=input_shape) 
     model_type = model_selector()
     model = parameter_selector(model_type, input_shape=input_shape)
-    
+
     # st.sidebar.header("Feature engineering")
     # degree = polynomial_degree_selector()
-    footer()
+
+    # download_result()
+
+    footer()    
 
     return (
         #dataset,
@@ -138,6 +146,12 @@ def body(
     # snippet_placeholder.code(snippet)
     tips_header_placeholder.subheader(f"**Tips on the {model_type} 💡 **")
     tips_placeholder.info(model_tips)
+
+    # -------------------------------- save files and zip
+    predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
+    predicted_values.to_csv('tmp_result/predicted_values.csv', header=['index', 'y_test', 'pred'], index=False)
+    
+    zip_dir(f'result/myfile', 'tmp_result') ##################################################
 
 
 
