@@ -4,6 +4,8 @@ import pandas as pd
 from pandas._libs.missing import NA
 from sqlalchemy import null
 import streamlit as st
+import copy
+import matplotlib.pyplot as plt
 
 # import user-defined parameter selectors
 from models.SVR import svr_param_selector
@@ -14,7 +16,9 @@ from sklearn.model_selection import train_test_split
 from models.utils import model_imports
 from utils.functions import img_to_bytes
 
-
+@st.experimental_memo
+def read_csv(path):
+    return pd.read_csv(path)
 
 def introduction():
     st.title("** Machine Learning Models for HTP phenotype prediction **")
@@ -34,34 +38,35 @@ def introduction():
 def dataset_selector():
     dataset_container = st.sidebar.expander("Configure a dataset", True)
     global current_data
+    current_data = None
 
     with dataset_container:
+        
         uploaded_file = st.file_uploader("Upload CSV file", key='data_uploader')
 
         if uploaded_file is not None:
-            # current_data = pd.read_csv(uploaded_file)
+            
+            current_data = read_csv(uploaded_file)
+            # current_data = read_csv(uploaded_file)
             # n_samples = current_data.shape[0]
             # # From  versions above 1 use session state
             # if 'cur_data' not in st.session_state:
             #    st.session_state.cur_data = current_data
             dataset = "upload"
-                        
-        st.write("#### Or, choose a pre-loaded dataset")
-        dataset = st.selectbox("Choose a dataset", options=("2016 DS", "regress"))
-
-        #if dataset == "2016 DS":
-           #current_data = pd.read_csv('data/_output.csv')
-           #n_samples = current_data.shape[0]
+        else:
+            st.write("#### Or, choose a pre-loaded dataset")
+            dataset = st.selectbox("Choose a dataset", options=("2016 DS","aa")) #########################################
+            if dataset == "2016 DS":
+                current_data = read_csv('data/_output.csv')
 
         #else:
         #    n_samples = 200 # number of samples for regress data = 200 (will be deleted/replaced later)
 
         #if uploaded_file is not None:
-            # current_data = pd.read_csv(uploaded_file)
+            # current_data = read_csv(uploaded_file)
             # n_samples = current_data.shape[0]
             #dataset = "upload"
-
-    return dataset
+    return current_data
 
 
 # def model_selector(input_shape=None):
@@ -122,8 +127,10 @@ def footer():
 
 # -----------------------------------------------------------------------------------------------------------------
 def column_selector(current_data):
+
     st.subheader("Choose phenotype to predict, and predictors")
-    st.dataframe(data=current_data.head(n=3))
+
+    st.dataframe(data=current_data.head())
 
     col_names = list(current_data.columns)
 
@@ -154,24 +161,27 @@ def column_selector(current_data):
             idx = [col_names.index(ii) for ii in element]
             xx_idx += (list(range(idx[0], idx[1]+1)))        
 
-    x = current_data.iloc[:,xx_idx] 
-    y = current_data[yy] 
+    yy_idx = col_names.index(yy)
 
-    st.dataframe(x.head(n=1))
-    st.markdown("-----")
+    # remove rows with NA
+    idx = copy.deepcopy(xx_idx)
+    idx.append(yy_idx) # the last column is y
+    current_data = current_data.iloc[:,idx].dropna()
+
+    # split y and x
+    y = current_data.iloc[:,-1] # the last column
+    x = current_data.iloc[:,:-1] # all columns except the last one
+
+    st.dataframe(x)
+    st.markdown("""
+        - Rows with NA's are removed
+    -----
+    """
+    )
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234) ############################### test train split
     
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234)
-
-    # x_train_pd, x_test_pd, y_train_pd, y_test_pd = train_test_split(x, y, test_size=0.2, random_state=1234)
-
-    # # convert to numpy array
-    # x_train = x_train_pd.to_numpy()
-    # x_test = x_test_pd.to_numpy()
-    # y_train = y_train_pd.to_numpy()
-    # y_test = y_test_pd.to_numpy()
-
     input_shape = x.shape[1] # number of variables 
-
 
     return x_train, y_train, x_test, y_test, input_shape
 

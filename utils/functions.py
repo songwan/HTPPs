@@ -20,31 +20,26 @@ def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-@st.experimental_memo
-def generate_data(dataset, uploaded_file=None):
-    if dataset == "regress":
-        n_samples = 200
-        x_train, y_train = make_regression(n_samples=n_samples)
-        x_test, y_test = make_regression(n_samples=n_samples)
-        current_data = None
+# @st.experimental_memo
+# def generate_data(current_data, uploaded_file=None):
 
-    elif dataset == "2016 DS":
-        current_data = pd.read_csv('data/_output.csv')
-        x_train = None
-        x_test = None
-        y_train = None
-        y_test = None
+#     # if dataset == "2016 DS":
+#         # current_data = pd.read_csv('data/_output.csv')
+#         # x_train = None
+#         # x_test = None
+#         # y_train = None
+#         # y_test = None
 
-    elif dataset == "upload":
-        current_data = pd.read_csv(uploaded_file)
-        #n_samples = current_data.shape[0]
-        #cur_data = st.session_state.cur_data
-        #x = cur_data.iloc[:, 0]
-        #y = cur_data.iloc[:, 1:]
-        #x_train, x_test, y_train, y_test = train_test_split(x, y,
-        #                                                   test_size=0.2, random_state=1234)
+#     # elif dataset == "upload":
+#     #     current_data = pd.read_csv(uploaded_file)
+#         #n_samples = current_data.shape[0]
+#         #cur_data = st.session_state.cur_data
+#         #x = cur_data.iloc[:, 0]
+#         #y = cur_data.iloc[:, 1:]
+#         #x_train, x_test, y_train, y_test = train_test_split(x, y,
+#         #                                                   test_size=0.2, random_state=1234)
 
-    return x_train, y_train, x_test, y_test, current_data
+#     return x_train, y_train, x_test, y_test, current_data
 
 
 # Plotting y vs. y_predicted scatterplot for visualizing prediction results
@@ -145,6 +140,8 @@ def train_keras_model(model, x_train, y_train, x_test, y_test):
         normed_x_train, y_train,
         epochs=epochs, validation_split = 0.2, verbose=0) #################################################### change as a parameter
 
+    print(history.history)
+    
     # Predict
     y_train_pred = model.predict(normed_x_train).flatten()
     y_test_pred =  model.predict(normed_x_test).flatten()

@@ -2,7 +2,7 @@ import numpy as np
 import streamlit as st
 from utils.functions import (
     # add_polynomial_features,
-    generate_data,
+    # generate_data,
     get_model_tips,
     get_model_url,
     plot_prediction_and_metrics,
@@ -29,17 +29,19 @@ st.set_page_config(
 def sidebar_controllers():
 
 
-    dataset = dataset_selector() # loads global variable current_data 
+    current_data = dataset_selector() # loads global variable current_data 
     #if dataset == "upload":
-    x_train, y_train, x_test, y_test, current_data = generate_data(dataset)    
+    # x_train, y_train, x_test, y_test, current_data = generate_data(current_data)    
+    
+    # -----------------------------------------------------------------------------------------------------------------
+    x_train, y_train, x_test, y_test, input_shape = column_selector(current_data)
 
-    # -----------------------------------------------------------------------------------------------------------------
-    if dataset == '2016 DS':
-        x_train, y_train, x_test, y_test, input_shape = column_selector(current_data)
+    # if dataset == '2016 DS':
+    #     x_train, y_train, x_test, y_test, input_shape = column_selector(current_data)
         
-    else: ################# delete later
-        input_shape = x_train.shape[1]
-    # -----------------------------------------------------------------------------------------------------------------
+    # else: ################# delete later
+    #     input_shape = x_train.shape[1]
+    # # -----------------------------------------------------------------------------------------------------------------
 
     # model_type, model = model_selector(input_shape=input_shape) 
     model_type = model_selector()
@@ -50,7 +52,7 @@ def sidebar_controllers():
     footer()
 
     return (
-        dataset,
+        #dataset,
         model_type,
         model,
         x_train,
@@ -145,7 +147,7 @@ def header():
 if __name__ == "__main__":
     header()
     (
-        dataset,
+        #dataset,
         model_type,
         model,
         x_train,
