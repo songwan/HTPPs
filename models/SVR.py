@@ -1,4 +1,3 @@
-from sklearn import svm
 import streamlit as st
 from sklearn.svm import SVR
 
@@ -11,7 +10,7 @@ def svr_param_selector():
     with st.sidebar.expander("Set parameters", True): 
         st.info('Click buttons to apply')
 
-        with st.form("layer_form"):
+        with st.form("svr_form"):
 
             st.form_submit_button('Set parameters', on_click=update_svr_counter)
 

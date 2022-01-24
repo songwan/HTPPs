@@ -8,6 +8,7 @@ import copy
 import matplotlib.pyplot as plt
 
 # import user-defined parameter selectors
+from models.Regression import regression_param_selector
 from models.SVR import svr_param_selector
 from models.kerasNN import knn_param_selector
 from sklearn.model_selection import train_test_split
@@ -92,7 +93,8 @@ def model_selector():
     with model_training_container:
         model_type = st.selectbox(
             "Models",
-            (
+            (   
+                "Linear Regression",
                 "Keras Neural Network",
                 "SVR",
             ),
@@ -102,7 +104,10 @@ def model_selector():
 
 
 def parameter_selector(model_type, input_shape=None):
-    if model_type == "Keras Neural Network":
+    if model_type == "Linear Regression":
+        model = regression_param_selector()
+    
+    elif model_type == "Keras Neural Network":
         model = knn_param_selector(input_shape=input_shape)
 
     elif model_type == "SVR":
@@ -180,7 +185,7 @@ def column_selector(current_data):
     )
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234) ############################### test train split
-    
+
     input_shape = x.shape[1] # number of variables 
 
     return x_train, y_train, x_test, y_test, input_shape

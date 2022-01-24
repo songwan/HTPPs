@@ -86,7 +86,7 @@ def body(
     model_url = get_model_url(model_type)
     
     # Regression Models -> R-squared, MSE
-    if model_type in ('SVR'):
+    if model_type in ('Linear Regression', 'SVR'):
         (   
             model, 
             train_rsquare, 

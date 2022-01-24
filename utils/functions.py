@@ -140,7 +140,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test):
         normed_x_train, y_train,
         epochs=epochs, validation_split = 0.2, verbose=0) #################################################### change as a parameter
 
-    print(history.history)
+    # print(history.history)
     
     # Predict
     y_train_pred = model.predict(normed_x_train).flatten()
