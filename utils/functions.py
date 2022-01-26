@@ -6,40 +6,21 @@ import time
 import streamlit as st
 import pandas as pd
 import numpy as np
+import pickle
+import json
 from sklearn.datasets import make_regression
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from tensorflow import keras
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-
+#from models.kerasNN import epochs
 from models.utils import model_infos, model_urls
 # from utils.ui import dataset_selector # for access to "current_data"
 
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# @st.experimental_memo
-# def generate_data(current_data, uploaded_file=None):
-
-#     # if dataset == "2016 DS":
-#         # current_data = pd.read_csv('data/_output.csv')
-#         # x_train = None
-#         # x_test = None
-#         # y_train = None
-#         # y_test = None
-
-#     # elif dataset == "upload":
-#     #     current_data = pd.read_csv(uploaded_file)
-#         #n_samples = current_data.shape[0]
-#         #cur_data = st.session_state.cur_data
-#         #x = cur_data.iloc[:, 0]
-#         #y = cur_data.iloc[:, 1:]
-#         #x_train, x_test, y_train, y_test = train_test_split(x, y,
-#         #                                                   test_size=0.2, random_state=1234)
-
-#     return x_train, y_train, x_test, y_test, current_data
 
 
 # Plotting y vs. y_predicted scatterplot for visualizing prediction results
@@ -99,8 +80,6 @@ def plot_prediction_and_metrics(
         col=1,
     )
 
-    # st.text(f'{metrics["train_rsquare"]}, {metrics["test_rsquare"]}')
-    # st.write('y_train_var', y_train.var())
     fig.add_trace(
         go.Indicator(
             mode="gauge+number+delta",
@@ -120,7 +99,7 @@ def plot_prediction_and_metrics(
 
     return fig
 
-def train_keras_model(model, x_train, y_train, x_test, y_test):
+def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split):
     t0 = time.time()
     
     # https://www.tensorflow.org/tutorials/keras/regression
@@ -133,12 +112,10 @@ def train_keras_model(model, x_train, y_train, x_test, y_test):
     normed_x_train = norm(x_train)
     normed_x_test = norm(x_test)
 
-    epochs = 10 #################################################### change as a parameter
-
     # Fit the model
     history = model.fit(
         normed_x_train, y_train,
-        epochs=epochs, validation_split = 0.2, verbose=0) #################################################### change as a parameter
+        epochs=epochs, validation_split = validation_split, verbose=0) #################################################### change as a parameter
 
     # print(history.history)
     
@@ -159,7 +136,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test):
 
     duration = time.time() - t0
 
-
+    model.save(f'tmp_result/model.h5', )
     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
 
 
@@ -178,6 +155,10 @@ def train_regression_model(model, x_train, y_train, x_test, y_test):
 
     duration = time.time() - t0
 
+    pickle.dump(model, open('tmp_result/model.pkl', 'wb'))
+
+
+
     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
 
 
@@ -194,7 +175,8 @@ def get_model_tips(model_type):
 
 def get_model_url(model_type):
     model_url = model_urls[model_type]
-    text = f"**Link to scikit-learn official documentation [here]({model_url}) 💻 **"
+    model_to_pkg = {'Keras Neural Network':'keras', 'SVR': 'scikit-learn', 'Linear Regression': 'scikit-learn'}
+    text = f"**Link to {model_to_pkg[model_type]} official documentation [here]({model_url}) 💻 **"
     return text
 
 
@@ -206,3 +188,17 @@ def set_sidebar_width(width):
         </style>
     ''',unsafe_allow_html=True)
     
+def output_csv():
+    with open('tmp_result/params.txt', 'r') as f:
+        params = f.read()
+    with open('tmp_result/x.txt', 'r') as f:
+        x = f.read()
+    with open('tmp_result/y.txt', 'r') as f:
+        y = f.read()
+    with open('tmp_result/metrics.txt', 'r') as f:
+        metrics = f.read()
+    
+    metrics = metrics.split(',')[0:4] # train rs, train mse, test sq, test mse
+    
+    evaluation = pd.DataFrame({'params':params, 'y':y, 'x':x, 'rsq.train':metrics[0], 'mse.train':metrics[1], 'rsq.test':metrics[2], 'mse.test':metrics[3]}, index=[0])
+    evaluation.to_csv('tmp_result/evaluation_result.csv', sep=',', index=False)

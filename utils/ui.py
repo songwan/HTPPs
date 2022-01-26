@@ -38,7 +38,6 @@ def introduction():
     """
     )
 
-# current_data: pd.DataFrame = None
 def dataset_selector():
     dataset_container = st.sidebar.expander("Configure a dataset", True)
     global current_data
@@ -51,45 +50,17 @@ def dataset_selector():
         if uploaded_file is not None:
             
             current_data = read_csv(uploaded_file)
-            # current_data = read_csv(uploaded_file)
-            # n_samples = current_data.shape[0]
-            # # From  versions above 1 use session state
-            # if 'cur_data' not in st.session_state:
-            #    st.session_state.cur_data = current_data
             dataset = "upload"
         else:
             st.write("#### Or, choose a pre-loaded dataset")
-            dataset = st.selectbox("Choose a dataset", options=("2016 DS","aa")) #########################################
+            dataset = st.selectbox("Choose a dataset", options=("2016 DS","iris")) #########################################
             if dataset == "2016 DS":
                 current_data = read_csv('data/_output.csv')
+            elif dataset == 'iris':
+                current_data = read_csv('data/iris.csv')
 
-        #else:
-        #    n_samples = 200 # number of samples for regress data = 200 (will be deleted/replaced later)
-
-        #if uploaded_file is not None:
-            # current_data = read_csv(uploaded_file)
-            # n_samples = current_data.shape[0]
-            #dataset = "upload"
     return current_data
 
-
-# def model_selector(input_shape=None):
-#     model_training_container = st.sidebar.expander("Train a model", True)
-#     with model_training_container:
-#         model_type = st.selectbox(
-#             "Choose a model",
-#             (
-#                 "Keras Neural Network",
-#                 "SVR",
-#             ),
-#         )
-#         if model_type == "Keras Neural Network":
-#             model = knn_param_selector(input_shape=input_shape)
-
-#         elif model_type == "SVR":
-#             model = svr_param_selector()
-
-#     return model_type, model
 
 def model_selector():
     model_training_container = st.sidebar.expander("Choose a model", True)
@@ -109,14 +80,18 @@ def model_selector():
 def parameter_selector(model_type, input_shape=None):
     if model_type == "Linear Regression":
         model = regression_param_selector()
-    
-    elif model_type == "Keras Neural Network":
-        model = knn_param_selector(input_shape=input_shape)
+        epochs = None
+        validation_split = None
 
+    elif model_type == "Keras Neural Network":
+        validation_split, epochs, model = knn_param_selector(input_shape=input_shape)
+    
     elif model_type == "SVR":
         model = svr_param_selector()
-    
-    return model
+        epochs = None
+        validation_split = None
+
+    return validation_split, epochs, model
 
 # def polynomial_degree_selector():
 #     return st.sidebar.number_input("Highest polynomial degree", 1, 10, 1, 1)
@@ -144,9 +119,15 @@ def column_selector(current_data):
 
     col1, col2 = st.columns((1, 4))
     with col1:
-        yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=10)
+        if current_data.shape[1] < 10: # for iris sample
+            yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=0)
+        else:
+            yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=10)
     with col2:
-        xx = st.text_input(label='Predictors (X)', value=f'{col_names[8]}, {col_names[9]}, {col_names[12]}:{col_names[14]}')
+        if current_data.shape[1] < 10: # for iris sample
+            xx = st.text_input(label='Predictors (X)', value=f'{col_names[1]}, {col_names[2]}:{col_names[3]}')
+        else:
+            xx = st.text_input(label='Predictors (X)', value=f'{col_names[8]}, {col_names[9]}, {col_names[12]}:{col_names[14]}')
     
     st.markdown(
         """
@@ -180,12 +161,19 @@ def column_selector(current_data):
     y = current_data.iloc[:,-1] # the last column
     x = current_data.iloc[:,:-1] # all columns except the last one
 
-    st.dataframe(x)
+    st.dataframe(x.head(1))
     st.markdown("""
         - Rows with NA's are removed
     -----
     """
     )
+
+    with open('tmp_result/y.txt', 'w') as f:
+        f.write(f'"{yy}"')
+
+    with open('tmp_result/x.txt', 'w') as f:
+        for item in x.columns:
+            f.write(f'"{item}";')
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234) ############################### test train split
 
@@ -203,40 +191,29 @@ def createFolder(directory):
 
 # First need to save result to zip format
 def zip_dir(zip_name, dir_path):
-    # log("name : {}, path : {}".format(zip_name, dir_path))
-    # zip 파일 경로. dir_path와 같은 위치에, zip_name을 가진 .zip 폴더 생성.
     zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
     new_zips = zipfile.ZipFile(zip_path, 'w')
     dir_path = dir_path + '/'
  
-    # 이 폴더 안의 모든 파일을 압축
     for root, directory, files in os.walk(dir_path):
-        for file in files:
-            path = os.path.join(root, file)
-            # 압축할 파일 경로, 압축 파일 안에서 사용할 상대경로, 압축 타입(일반 압축)
-            new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
- 
+        for file in files: # ['model.h5','predicted_values.csv', 'evaluation_result.csv']: 
+            if (file == 'model.h5') or (file == 'model.pkl') or (file == 'predicted_values.csv') or (file == 'evaluation_result.csv'):
+                path = os.path.join(root, file)
+                new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
+
+            else:
+                next
+
     new_zips.close()
  
-    # 원본 폴더 삭제 (내용물과 함께 삭제)
-    shutil.rmtree(dir_path)
+    shutil.rmtree(dir_path) # remove all files including tmp_result
 
-# # Then link to streamlit download button 
-# @st.cache
-# def convert_df(df):
-# # IMPORTANT: Cache the conversion to prevent computation on every rerun
-#     return df.to_csv().encode('utf-8')
 
-# def download_result():
-#     text_contents = '''This is some text'''
-#     st.sidebar.download_button('Download some text', text_contents)
-
-#     csv = convert_df(read_csv('data/_output.csv')) # --------------------------------------
-
-#     with open("data/myfile.zip", "rb") as fp:
-#         btn = st.sidebar.download_button(
-#             label="Download ZIP",
-#             data=fp,
-#             file_name=f"myfile.zip",
-#             mime="application/zip"
-#         )
+def download_result():
+    with open("result/myfile.zip", "rb") as fp:
+        btn = st.download_button(
+            label="Download model results (.zip)",
+            data=fp,
+            file_name=f"myfile-out.zip",
+            mime="application/zip"
+        )
