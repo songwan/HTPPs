@@ -10,6 +10,7 @@ from utils.functions import (
     #train_classification_model,
     train_keras_model,
     train_regression_model,
+    output_csv,
 )
 
 from utils.ui import (
@@ -23,7 +24,7 @@ from utils.ui import (
     column_selector,
     zip_dir,
     createFolder,
-    # download_result,
+    download_result,
 )
 
 st.set_page_config(
@@ -50,12 +51,11 @@ def sidebar_controllers():
 
     # model_type, model = model_selector(input_shape=input_shape) 
     model_type = model_selector()
-    model = parameter_selector(model_type, input_shape=input_shape)
+    validation_split, epochs, model = parameter_selector(model_type, input_shape=input_shape)
 
     # st.sidebar.header("Feature engineering")
     # degree = polynomial_degree_selector()
 
-    # download_result()
 
     footer()    
 
@@ -67,12 +67,14 @@ def sidebar_controllers():
         y_train,
         x_test,
         y_test,
+        epochs,
+        validation_split,
         #degree,
     )
 
 
 def body(
-    x_train, x_test, y_train, y_test, model, model_type # noise may be interesting, but less important to the users
+    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split # noise may be interesting, but less important to the users
 ):
     # introduction()
 
@@ -106,13 +108,6 @@ def body(
             y_test_pred,
         ) = train_regression_model(model, x_train, y_train, x_test, y_test)
 
-        metrics = {
-            "train_rsquare": train_rsquare,
-            "train_mse": train_mse,
-            "test_rsquare": test_rsquare,
-            "test_mse": test_mse,
-        }
-
     # Keras NN -> R-squared, MSE
     elif model_type in ('Keras Neural Network'):
         (   
@@ -124,14 +119,18 @@ def body(
             duration,
             y_train_pred,
             y_test_pred,
-        ) = train_keras_model(model, x_train, y_train, x_test, y_test)
+        ) = train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split)
 
-        metrics = {
-            "train_rsquare": train_rsquare, 
-            "train_mse": train_mse, 
-            "test_rsquare": test_rsquare, 
-            "test_mse": test_mse, 
-        }
+    metrics = {
+        "train_rsquare": train_rsquare, 
+        "train_mse": train_mse, 
+        "test_rsquare": test_rsquare, 
+        "test_mse": test_mse, 
+    }
+
+    with open('tmp_result/metrics.txt', 'w') as f:
+        for item in metrics.values(): # train rs, train mse, test sq, test mse
+            f.write(f'{item},')
 
     model_tips = get_model_tips(model_type)
 
@@ -150,10 +149,9 @@ def body(
     # -------------------------------- save files and zip
     predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
     predicted_values.to_csv('tmp_result/predicted_values.csv', header=['index', 'y_test', 'pred'], index=False)
-    
+    output_csv()
     zip_dir(f'result/myfile', 'tmp_result') ##################################################
-
-
+    download_result()
 
 def header():
     introduction()
@@ -168,6 +166,8 @@ if __name__ == "__main__":
         y_train,
         x_test,
         y_test,
+        epochs,
+        validation_split,
         # degree,
     ) = sidebar_controllers()
     body(
@@ -178,4 +178,6 @@ if __name__ == "__main__":
         # degree,
         model,
         model_type,
+        epochs,
+        validation_split,
     )
