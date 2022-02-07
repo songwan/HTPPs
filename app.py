@@ -7,10 +7,13 @@ from utils.functions import (
     get_model_tips,
     get_model_url,
     plot_prediction_and_metrics,
-    #train_classification_model,
+    plot_classification_and_metrics,
+    plot_history,
+    train_classification_model,
     train_keras_model,
     train_regression_model,
     output_csv,
+    set_sidebar_width,
 )
 
 from utils.ui import (
@@ -31,31 +34,37 @@ st.set_page_config(
     page_title="Predict Phenotype from HTP indices", layout="wide", page_icon="./images/flask.png"
 )
 
+def update_expand_counter():
+    st.session_state.expand_clicked = not(st.session_state.expand_clicked)
+
+def expend_sidebar():
+    
+    with st.sidebar.form("expand_form"):    
+        if 'expand_clicked' not in st.session_state:
+            st.session_state.expand_clicked = False
+
+        st.form_submit_button('Expand/shrink sidebar', on_click=update_expand_counter)
+
+    if st.session_state.expand_clicked:
+        set_sidebar_width(60)
+    else:
+        set_sidebar_width(21)
+
 def sidebar_controllers():
 
     createFolder('tmp_result') # temporary folder to save result
 
     current_data = dataset_selector() # loads global variable current_data 
-    #if dataset == "upload":
-    # x_train, y_train, x_test, y_test, current_data = generate_data(current_data)    
-    
-    # -----------------------------------------------------------------------------------------------------------------
-    x_train, y_train, x_test, y_test, input_shape = column_selector(current_data)
 
-    # if dataset == '2016 DS':
-    #     x_train, y_train, x_test, y_test, input_shape = column_selector(current_data)
-        
-    # else: ################# delete later
-    #     input_shape = x_train.shape[1]
-    # # -----------------------------------------------------------------------------------------------------------------
+    x_train, y_train, x_test, y_test, input_shape, goal, nclasses = column_selector(current_data)
 
-    # model_type, model = model_selector(input_shape=input_shape) 
-    model_type = model_selector()
-    validation_split, epochs, model = parameter_selector(model_type, input_shape=input_shape)
 
-    # st.sidebar.header("Feature engineering")
-    # degree = polynomial_degree_selector()
+    model_type = model_selector(goal)
 
+    if model_type in ('Keras Neural Network'):
+        expend_sidebar()
+
+    validation_split, epochs, model = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
 
     footer()    
 
@@ -69,12 +78,13 @@ def sidebar_controllers():
         y_test,
         epochs,
         validation_split,
+        goal,
         #degree,
     )
 
 
 def body(
-    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split # noise may be interesting, but less important to the users
+    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal # noise may be interesting, but less important to the users
 ):
     # introduction()
 
@@ -91,11 +101,12 @@ def body(
         snippet_placeholder = st.empty()
         tips_header_placeholder = st.empty()
         tips_placeholder = st.empty()
+        history_placeholder = st.empty()
 
     # x_train, x_test = add_polynomial_features(x_train, x_test, degree)
     model_url = get_model_url(model_type)
     
-    # Regression Models -> R-squared, MSE
+    # 1) Rregression Models -> R-squared, MSE
     if model_type in ('Linear Regression', 'SVR'):
         (   
             model, 
@@ -108,25 +119,52 @@ def body(
             y_test_pred,
         ) = train_regression_model(model, x_train, y_train, x_test, y_test)
 
-    # Keras NN -> R-squared, MSE
+        metrics = {
+            "train_rsquare": train_rsquare, 
+            "train_mse": train_mse, 
+            "test_rsquare": test_rsquare, 
+            "test_mse": test_mse, 
+        }
+
+
+    # 2) Keras NN -> R-squared, MSE
     elif model_type in ('Keras Neural Network'):
         (   
             model, 
-            train_rsquare, 
-            test_rsquare, 
-            train_mse, 
-            test_mse, 
             duration,
             y_train_pred,
             y_test_pred,
-        ) = train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split)
+            history,
+            metrics,
+        ) = train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal)
+            
+        # metrics = {
+        #     "train_rsquare": train_rsquare, 
+        #     "train_mse": train_mse, 
+        #     "test_rsquare": test_rsquare, 
+        #     "test_mse": test_mse, 
+        # }
 
-    metrics = {
-        "train_rsquare": train_rsquare, 
-        "train_mse": train_mse, 
-        "test_rsquare": test_rsquare, 
-        "test_mse": test_mse, 
-    }
+    # 3) Classification Models -> f1, accuracy
+    elif model_type in ('SVC'):
+        (   
+            model, 
+            train_accuracy, 
+            test_accuracy, 
+            train_f1, 
+            test_f1, 
+            duration, 
+            y_train_pred, 
+            y_test_pred
+
+        ) = train_classification_model(model, x_train, y_train, x_test, y_test)
+
+        metrics = {
+            "train_accuracy": train_accuracy, 
+            "train_f1": train_f1, 
+            "test_accuracy": test_accuracy, 
+            "test_f1": test_f1, 
+        }
 
     with open('tmp_result/metrics.txt', 'w') as f:
         for item in metrics.values(): # train rs, train mse, test sq, test mse
@@ -134,9 +172,21 @@ def body(
 
     model_tips = get_model_tips(model_type)
 
-    fig = plot_prediction_and_metrics(
-        y_train, y_test, metrics, y_train_pred, y_test_pred
-    )
+    if model_type in ('SVR', 'Linear Regression'):
+        fig = plot_prediction_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+
+    elif model_type in ('Keras Neural Network'):
+
+        if goal=='Prediction':
+            fig = plot_prediction_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+        elif goal=='Classification':
+            fig = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+
+        fig_history = plot_history(history)
+        history_placeholder.pyplot(fig_history, True)
+
+    elif model_type in ('SVC'):
+        fig = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
 
     plot_placeholder.plotly_chart(fig, True)
     duration_placeholder.warning(f"Training took {duration:.3f} seconds")
@@ -145,6 +195,7 @@ def body(
     # snippet_placeholder.code(snippet)
     tips_header_placeholder.subheader(f"**Tips on the {model_type} 💡 **")
     tips_placeholder.info(model_tips)
+    
 
     # -------------------------------- save files and zip
     predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
@@ -168,6 +219,7 @@ if __name__ == "__main__":
         y_test,
         epochs,
         validation_split,
+        goal,
         # degree,
     ) = sidebar_controllers()
     body(
@@ -180,4 +232,5 @@ if __name__ == "__main__":
         model_type,
         epochs,
         validation_split,
+        goal,
     )

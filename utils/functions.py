@@ -6,21 +6,120 @@ import time
 import streamlit as st
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
 import pickle
 import json
-from sklearn.datasets import make_regression
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from tensorflow import keras
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-#from models.kerasNN import epochs
+from sklearn.metrics import accuracy_score, f1_score
 from models.utils import model_infos, model_urls
+from keras.utils import np_utils
+
 # from utils.ui import dataset_selector # for access to "current_data"
 
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+
+def plot_history(history):
+    st.write(history.history)
+    fig, loss_ax = plt.subplots()
+
+    #fig.set_figwidth(10)
+    fig.set_figheight(3.5)
+
+    acc_ax = loss_ax.twinx()
+
+    loss_ax.plot(history.history['loss'], 'y', label='train loss')
+    loss_ax.plot(history.history['val_loss'], 'r', label='val loss')
+    loss_ax.set_xlabel('epoch')
+    loss_ax.set_ylabel('loss')
+    loss_ax.legend(loc='upper left')
+    
+    acc_ax.plot(history.history['mae'], 'b', label='train mae')
+    acc_ax.plot(history.history['val_mae'], 'g', label='val mae')
+    acc_ax.set_ylabel('mae')
+    acc_ax.legend(loc='upper right')
+
+    return fig
+
+def plot_classification_and_metrics(
+        y_train, y_test, metrics, y_train_pred, y_test_pred
+):
+    fig = make_subplots(
+        rows=2,
+        cols=2,
+        specs=[[{"colspan": 2}, None], [{"type": "indicator"}, {"type": "indicator"}]],
+        subplot_titles=("Scatterplot", None, None),
+        row_heights=[0.7, 0.30],
+    )
+
+    train_data = go.Scatter(
+        x = y_train,
+        y = y_train_pred,
+        name="train data",
+        mode="markers",
+        showlegend=True,
+        marker=dict(
+            size=5,
+            color='green',
+            line=dict(color="black", width=2),
+        ),
+    )
+
+    test_data = go.Scatter(
+        x = y_test,
+        y = y_test_pred,
+        name="test data",
+        mode="markers",
+        showlegend=True,
+        # marker_symbol="cross",
+        visible="legendonly",
+        marker=dict(
+            size=5,
+            color='tomato',
+            line=dict(color="black", width=2),
+        ),
+    )
+
+    fig.add_trace(train_data, row=1, col=1).add_trace(test_data).update_xaxes(title='Target').update_yaxes(title='Predicted')
+
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number+delta",
+            value=metrics["test_accuracy"],
+            title={"text": f"Accuracy (test)"},
+            domain={"x": [0, 1], "y": [0, 1]},
+            gauge={"axis": {"range": [0, 1]}},
+            delta={"reference": metrics["train_accuracy"]},
+        ),
+        row=2,
+        col=1,
+    )
+
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number+delta",
+            value=metrics["test_f1"],
+            title={"text": f"F1 score (test)"},
+            domain={"x": [0, 1], "y": [0, 1]},
+            gauge={"axis": {"range": [0, 1]}},
+            delta={"reference": metrics["train_f1"]},
+        ),
+        row=2,
+        col=2,
+    )
+
+    fig.update_layout(
+        height=700,
+    )
+
+    return fig
 
 
 # Plotting y vs. y_predicted scatterplot for visualizing prediction results
@@ -99,46 +198,125 @@ def plot_prediction_and_metrics(
 
     return fig
 
-def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split):
-    t0 = time.time()
-    
-    # https://www.tensorflow.org/tutorials/keras/regression
+# Normalize data
+def norm(x, train_stats):
+    return (x - train_stats['mean']) / train_stats['std']
 
-    # Normalize data
-    def norm(x):
-        return (x - train_stats['mean']) / train_stats['std']
+def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal):
+   
+    t0 = time.time()
 
     train_stats = x_train.describe().transpose()
-    normed_x_train = norm(x_train)
-    normed_x_test = norm(x_test)
+    normed_x_train = norm(x_train, train_stats)
+    normed_x_test = norm(x_test, train_stats)
+
+    # if goal in ('Classification'):
+
+    # elif goal in ('Prediction'):
+
+
+    # st.dataframe(y_train)
+    # st.write(type(y_train))
+    # st.dataframe(np_utils.to_categorical(y_train))
 
     # Fit the model
     history = model.fit(
         normed_x_train, y_train,
-        epochs=epochs, validation_split = validation_split, verbose=0) #################################################### change as a parameter
-
+        epochs=epochs, validation_split = validation_split, verbose=0) 
     # print(history.history)
-    
-    # Predict
-    y_train_pred = model.predict(normed_x_train).flatten()
-    y_test_pred =  model.predict(normed_x_test).flatten()
 
-    # https://stackoverflow.com/questions/44843581/what-is-the-difference-between-model-fit-an-model-evaluate-in-keras
-    # - model.fit(): for training the model with the given inputs
-    # - model.evaluate(): for evaluating the already trained model using the validation (or test) data. Returns loss value and metrics values
-    # - model.predict(): for actual prediction. It generates output predictions for the input samples
-    # -------------------------------------------------------------------------------------
+    if goal == 'Prediction':
+        # Predict
+        y_train_pred = model.predict(normed_x_train).flatten()
+        y_test_pred =  model.predict(normed_x_test).flatten()
 
-    train_rsquare =  np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
-    train_mse =  np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
-    test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0,1]), 3)
-    test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
+        train_rsquare =  np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
+        train_mse =  np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+        test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0,1]), 3)
+        test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
+
+        metrics = {'train_rsquare':train_rsquare, 'train_mse':train_mse, 'test_rsquare':test_rsquare, 'test_mse':test_mse}
+
+    elif goal == 'Classification': ###############################################################
+        # Predict
+        y_train_pred = model.predict(normed_x_train)
+        y_test_pred =  model.predict(normed_x_test)
+        
+        y_train_pred = np.argmax(y_train_pred, axis=1) # softmax result -> classification
+        y_test_pred = np.argmax(y_test_pred, axis=1)
+
+        train_accuracy = np.round(accuracy_score(y_train, y_train_pred), 3)
+        train_f1 = np.round(f1_score(y_train, y_train_pred, average="weighted"), 3)
+
+        test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
+        test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
+        metrics = {'train_accuracy':train_accuracy, 'train_f1':train_f1, 'test_accuracy':test_accuracy, 'test_f1':test_f1 }
 
     duration = time.time() - t0
 
     model.save(f'tmp_result/model.h5', )
-    return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
+    return model, duration, y_train_pred, y_test_pred, history, metrics
 
+# def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal):
+
+#     if goal in ('Classification'):
+#         1
+#     elif goal in ('Prediction'):
+#         1
+
+#     st.write(goal)
+
+#     # st.dataframe(y_train)
+#     # st.write(type(y_train))
+#     # st.dataframe(np_utils.to_categorical(y_train))
+
+#     t0 = time.time()
+    
+#     # Normalize data
+#     def norm(x):
+#         return (x - train_stats['mean']) / train_stats['std']
+
+#     train_stats = x_train.describe().transpose()
+#     normed_x_train = norm(x_train)
+#     normed_x_test = norm(x_test)
+
+#     # Fit the model
+#     history = model.fit(
+#         normed_x_train, y_train,
+#         epochs=epochs, validation_split = validation_split, verbose=0) 
+#     # print(history.history)
+    
+#     # Predict
+#     y_train_pred = model.predict(normed_x_train).flatten()
+#     y_test_pred =  model.predict(normed_x_test).flatten()
+
+
+#     train_rsquare =  np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
+#     train_mse =  np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
+#     test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0,1]), 3)
+#     test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
+
+#     duration = time.time() - t0
+
+#     model.save(f'tmp_result/model.h5', )
+#     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred, history
+
+
+
+def train_classification_model(model, x_train, y_train, x_test, y_test):
+    t0 = time.time()
+    model.fit(x_train, y_train)
+    duration = time.time() - t0
+    y_train_pred = model.predict(x_train)
+    y_test_pred = model.predict(x_test)
+
+    train_accuracy = np.round(accuracy_score(y_train, y_train_pred), 3)
+    train_f1 = np.round(f1_score(y_train, y_train_pred, average="weighted"), 3)
+
+    test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
+    test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
+
+    return model, train_accuracy, test_accuracy, train_f1, test_f1, duration, y_train_pred, y_test_pred
 
 def train_regression_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
@@ -175,7 +353,7 @@ def get_model_tips(model_type):
 
 def get_model_url(model_type):
     model_url = model_urls[model_type]
-    model_to_pkg = {'Keras Neural Network':'keras', 'SVR': 'scikit-learn', 'Linear Regression': 'scikit-learn'}
+    model_to_pkg = {'Keras Neural Network':'keras', 'SVR': 'scikit-learn', 'Linear Regression': 'scikit-learn', 'SVC': 'scikit-learn'}
     text = f"**Link to {model_to_pkg[model_type]} official documentation [here]({model_url}) 💻 **"
     return text
 
