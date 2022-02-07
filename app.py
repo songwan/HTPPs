@@ -92,6 +92,7 @@ def body(
     col1, col2 = st.columns((1, 1))
 
     with col1:
+        confusion_placeholder = st.empty()
         plot_placeholder = st.empty()
 
     with col2:
@@ -177,16 +178,19 @@ def body(
 
     elif model_type in ('Keras Neural Network'):
 
-        if goal=='Prediction':
+        if goal=='Prediction':   
             fig = plot_prediction_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
-        elif goal=='Classification':
-            fig = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+
+        elif goal=='Classification':  
+            fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+            confusion_placeholder.pyplot(fig_conf, True)
 
         fig_history = plot_history(history)
         history_placeholder.pyplot(fig_history, True)
 
     elif model_type in ('SVC'):
-        fig = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+        fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+        confusion_placeholder.pyplot(fig_conf, True)
 
     plot_placeholder.plotly_chart(fig, True)
     duration_placeholder.warning(f"Training took {duration:.3f} seconds")

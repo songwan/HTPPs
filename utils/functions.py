@@ -3,6 +3,8 @@ from pathlib import Path
 import base64
 from tabnanny import verbose
 import time
+import itertools
+import plotly.figure_factory as ff
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -15,7 +17,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow import keras
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from models.utils import model_infos, model_urls
 from keras.utils import np_utils
 
@@ -27,7 +29,6 @@ def local_css(file_name):
 
 
 def plot_history(history):
-    st.write(history.history)
     fig, loss_ax = plt.subplots()
 
     #fig.set_figwidth(10)
@@ -48,46 +49,58 @@ def plot_history(history):
 
     return fig
 
+def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labels=True, title='Confusion matrix'):
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    
+    fig = plt.figure(figsize=(8, 6))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar() 
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names)
+        plt.yticks(tick_marks, target_names)
+    
+    if labels:
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            if normalize:
+                plt.text(j, i, "{:0.4f}".format(cm[i, j]),
+                         horizontalalignment="center",
+                         color="white" if cm[i, j] > thresh else "black")
+            else:
+                plt.text(j, i, "{:,}".format(cm[i, j]),
+                         horizontalalignment="center",
+                         color="white" if cm[i, j] > thresh else "black")
+ 
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    
+    return fig
+
 def plot_classification_and_metrics(
         y_train, y_test, metrics, y_train_pred, y_test_pred
 ):
+    conf_mat = confusion_matrix(y_test, y_test_pred)
+    fig_conf = plot_confusion_matrix(conf_mat)
+    
     fig = make_subplots(
-        rows=2,
+        rows=1,
         cols=2,
-        specs=[[{"colspan": 2}, None], [{"type": "indicator"}, {"type": "indicator"}]],
-        subplot_titles=("Scatterplot", None, None),
-        row_heights=[0.7, 0.30],
+        specs=[[{"type": "indicator"}, {"type": "indicator"}]],
+        row_heights=[0.30],
     )
-
-    train_data = go.Scatter(
-        x = y_train,
-        y = y_train_pred,
-        name="train data",
-        mode="markers",
-        showlegend=True,
-        marker=dict(
-            size=5,
-            color='green',
-            line=dict(color="black", width=2),
-        ),
-    )
-
-    test_data = go.Scatter(
-        x = y_test,
-        y = y_test_pred,
-        name="test data",
-        mode="markers",
-        showlegend=True,
-        # marker_symbol="cross",
-        visible="legendonly",
-        marker=dict(
-            size=5,
-            color='tomato',
-            line=dict(color="black", width=2),
-        ),
-    )
-
-    fig.add_trace(train_data, row=1, col=1).add_trace(test_data).update_xaxes(title='Target').update_yaxes(title='Predicted')
 
     fig.add_trace(
         go.Indicator(
@@ -98,7 +111,7 @@ def plot_classification_and_metrics(
             gauge={"axis": {"range": [0, 1]}},
             delta={"reference": metrics["train_accuracy"]},
         ),
-        row=2,
+        row=1,
         col=1,
     )
 
@@ -111,15 +124,15 @@ def plot_classification_and_metrics(
             gauge={"axis": {"range": [0, 1]}},
             delta={"reference": metrics["train_f1"]},
         ),
-        row=2,
+        row=1,
         col=2,
     )
 
     fig.update_layout(
-        height=700,
+        height=280,
     )
 
-    return fig
+    return fig, fig_conf
 
 
 # Plotting y vs. y_predicted scatterplot for visualizing prediction results
@@ -214,11 +227,6 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
 
     # elif goal in ('Prediction'):
 
-
-    # st.dataframe(y_train)
-    # st.write(type(y_train))
-    # st.dataframe(np_utils.to_categorical(y_train))
-
     # Fit the model
     history = model.fit(
         normed_x_train, y_train,
@@ -256,52 +264,6 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
 
     model.save(f'tmp_result/model.h5', )
     return model, duration, y_train_pred, y_test_pred, history, metrics
-
-# def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal):
-
-#     if goal in ('Classification'):
-#         1
-#     elif goal in ('Prediction'):
-#         1
-
-#     st.write(goal)
-
-#     # st.dataframe(y_train)
-#     # st.write(type(y_train))
-#     # st.dataframe(np_utils.to_categorical(y_train))
-
-#     t0 = time.time()
-    
-#     # Normalize data
-#     def norm(x):
-#         return (x - train_stats['mean']) / train_stats['std']
-
-#     train_stats = x_train.describe().transpose()
-#     normed_x_train = norm(x_train)
-#     normed_x_test = norm(x_test)
-
-#     # Fit the model
-#     history = model.fit(
-#         normed_x_train, y_train,
-#         epochs=epochs, validation_split = validation_split, verbose=0) 
-#     # print(history.history)
-    
-#     # Predict
-#     y_train_pred = model.predict(normed_x_train).flatten()
-#     y_test_pred =  model.predict(normed_x_test).flatten()
-
-
-#     train_rsquare =  np.round(np.square(np.corrcoef(y_train, y_train_pred)[0,1]), 3)
-#     train_mse =  np.round(np.square(np.subtract(y_train, y_train_pred)).mean(), 3)
-#     test_rsquare = np.round(np.square(np.corrcoef(y_test, y_test_pred)[0,1]), 3)
-#     test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
-
-#     duration = time.time() - t0
-
-#     model.save(f'tmp_result/model.h5', )
-#     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred, history
-
-
 
 def train_classification_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
