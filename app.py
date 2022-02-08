@@ -56,7 +56,7 @@ def sidebar_controllers():
 
     current_data = dataset_selector() # loads global variable current_data 
 
-    x_train, y_train, x_test, y_test, input_shape, goal, nclasses = column_selector(current_data)
+    x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely = column_selector(current_data)
 
 
     model_type = model_selector(goal)
@@ -79,12 +79,13 @@ def sidebar_controllers():
         epochs,
         validation_split,
         goal,
+        labely,
         #degree,
     )
 
 
 def body(
-    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal # noise may be interesting, but less important to the users
+    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal, labely # noise may be interesting, but less important to the users
 ):
     # introduction()
 
@@ -178,18 +179,18 @@ def body(
 
     elif model_type in ('Keras Neural Network'):
 
-        if goal=='Prediction':   
+        if goal=='Regression':   
             fig = plot_prediction_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
 
         elif goal=='Classification':  
-            fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+            fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred, labely)
             confusion_placeholder.pyplot(fig_conf, True)
 
         fig_history = plot_history(history)
         history_placeholder.pyplot(fig_history, True)
 
     elif model_type in ('SVC'):
-        fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred)
+        fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred, labely)
         confusion_placeholder.pyplot(fig_conf, True)
 
     plot_placeholder.plotly_chart(fig, True)
@@ -224,6 +225,7 @@ if __name__ == "__main__":
         epochs,
         validation_split,
         goal,
+        labely
         # degree,
     ) = sidebar_controllers()
     body(
@@ -237,4 +239,5 @@ if __name__ == "__main__":
         epochs,
         validation_split,
         goal,
+        labely,
     )

@@ -8,7 +8,7 @@ from keras.layers import Dense
 
 def layers_layout(goal, nclasses, number_layers):
 
-    last_n_neuron = {'Prediction':1, 'Classification':nclasses}
+    last_n_neuron = {'Regression':1, 'Classification':nclasses}
 
     layer_sizes = []
     nrows = (number_layers-1)//5 + 1 
@@ -27,7 +27,7 @@ def layers_layout(goal, nclasses, number_layers):
                     n_neurons = st.number_input(f"input layer", 1, 1000000, 100, 25) # first layer
 
                 elif count==number_layers:
-                    n_neurons = st.number_input(f"output layer", 1, 1000000, last_n_neuron[goal], 10) # last layer has only 1 neuron by default
+                    n_neurons = st.number_input(f"output layer (automatic)", last_n_neuron[goal], last_n_neuron[goal], last_n_neuron[goal], 0) # last layer has only 1 neuron by default
                 else:
                    n_neurons = st.number_input(f"layer {count}", 1, 1000000, 100, 25) # middle layers
 
@@ -41,7 +41,7 @@ def activation_layout(goal, nclasses, number_layers):
     if (nclasses==2) and (goal=='Classification'): 
         goal = 'Binary'
     
-    last_activation = {'Prediction':[None, 'relu', 'linear'], 'Classification':['softmax'], 'Binary': ['sigmoid']}#:{'binary':['sigmoid'], 'multiple':['softmax']}}
+    last_activation = {'Regression':[None, 'relu', 'linear'], 'Classification':['softmax'], 'Binary': ['sigmoid']}#:{'binary':['sigmoid'], 'multiple':['softmax']}}
     # https://towardsdatascience.com/deep-learning-which-loss-and-activation-functions-should-i-use-ac02f1c56aa8
     # softmax: multi-class classification
     # sigmoid: binary classification
@@ -109,9 +109,7 @@ def knn_param_selector(goal, nclasses, input_shape=None):
     if (nclasses==2) and (goal=='Classification'): 
         goal = 'Binary'
 
-    loss_by_goal = {'Prediction':['mean_squared_error', 'mean_absolute_error'], 'Classification':['sparse_categorical_crossentropy', 'categorical_crossentropy'], 'Binary':['binary_crossentropy']}
-
-    st.write(input_shape, goal, nclasses)
+    loss_by_goal = {'Regression':['mean_squared_error', 'mean_absolute_error'], 'Classification':['sparse_categorical_crossentropy', 'categorical_crossentropy'], 'Binary':['binary_crossentropy']}
     
     layer_sizes = []
     layer_activations = []

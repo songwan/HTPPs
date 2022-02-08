@@ -61,6 +61,8 @@ def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labe
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     
     fig = plt.figure(figsize=(8, 6))
+    fig.set_figheight(5)
+
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar() 
@@ -90,16 +92,16 @@ def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labe
     return fig
 
 def plot_classification_and_metrics(
-        y_train, y_test, metrics, y_train_pred, y_test_pred
+        y_train, y_test, metrics, y_train_pred, y_test_pred, labely
 ):
     conf_mat = confusion_matrix(y_test, y_test_pred)
-    fig_conf = plot_confusion_matrix(conf_mat)
+    fig_conf = plot_confusion_matrix(conf_mat, target_names=np.array(labely[0].tolist()), title="Confusion matrix (normalized accuracy)")
     
     fig = make_subplots(
         rows=1,
         cols=2,
         specs=[[{"type": "indicator"}, {"type": "indicator"}]],
-        row_heights=[0.30],
+        #row_heights=[0.30],
     )
 
     fig.add_trace(
@@ -129,9 +131,10 @@ def plot_classification_and_metrics(
     )
 
     fig.update_layout(
-        height=280,
+        height=150,
     )
-
+    fig['layout'].update(margin=dict(l=20,r=20,b=20,t=50))
+    
     return fig, fig_conf
 
 
@@ -225,7 +228,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
 
     # if goal in ('Classification'):
 
-    # elif goal in ('Prediction'):
+    # elif goal in ('Regression'):
 
     # Fit the model
     history = model.fit(
@@ -233,7 +236,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
         epochs=epochs, validation_split = validation_split, verbose=0) 
     # print(history.history)
 
-    if goal == 'Prediction':
+    if goal == 'Regression':
         # Predict
         y_train_pred = model.predict(normed_x_train).flatten()
         y_test_pred =  model.predict(normed_x_test).flatten()
