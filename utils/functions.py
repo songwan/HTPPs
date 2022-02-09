@@ -31,6 +31,8 @@ def local_css(file_name):
 def plot_history(history):
     fig, loss_ax = plt.subplots()
 
+    # st.write(history.history)
+    
     #fig.set_figwidth(10)
     fig.set_figheight(3.5)
 
@@ -233,7 +235,8 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
     history = model.fit(
         normed_x_train, y_train,
         epochs=epochs, validation_split = validation_split, verbose=0) 
-    # print(history.history)
+    
+    # w(history.history)
 
     if goal == 'Regression':
         # Predict
@@ -264,7 +267,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
 
     duration = time.time() - t0
 
-    model.save(f'tmp_result/model.h5', )
+    # model.save(f'tmp_result/model.h5', )
     return model, duration, y_train_pred, y_test_pred, history, metrics
 
 def train_classification_model(model, x_train, y_train, x_test, y_test):
@@ -279,6 +282,7 @@ def train_classification_model(model, x_train, y_train, x_test, y_test):
 
     test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
     test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
+    # pickle.dump(model, open('tmp_result/model.pkl', 'wb'))
 
     return model, train_accuracy, test_accuracy, train_f1, test_f1, duration, y_train_pred, y_test_pred
 
@@ -297,7 +301,7 @@ def train_regression_model(model, x_train, y_train, x_test, y_test):
 
     duration = time.time() - t0
 
-    pickle.dump(model, open('tmp_result/model.pkl', 'wb'))
+    # pickle.dump(model, open('tmp_result/model.pkl', 'wb'))
 
 
 
@@ -329,18 +333,3 @@ def set_sidebar_width(width):
             section[data-testid="stSidebar"] .css-1d391kg {{width: {width}rem;}}
         </style>
     ''',unsafe_allow_html=True)
-    
-# def output_csv():
-#     with open('tmp_result/params.txt', 'r') as f:
-#         params = f.read()
-#     with open('tmp_result/x.txt', 'r') as f:
-#         x = f.read()
-#     with open('tmp_result/y.txt', 'r') as f:
-#         y = f.read()
-#     with open('tmp_result/metrics.txt', 'r') as f:
-#         metrics = f.read()
-    
-#     metrics = metrics.split(',')[0:4] # train rs, train mse, test sq, test mse
-    
-#     evaluation = pd.DataFrame({'params':params, 'y':y, 'x':x, 'rsq.train':metrics[0], 'mse.train':metrics[1], 'rsq.test':metrics[2], 'mse.test':metrics[3]}, index=[0])
-#     evaluation.to_csv('tmp_result/evaluation_result.csv', sep=',', index=False)

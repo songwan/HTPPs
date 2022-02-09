@@ -1,3 +1,4 @@
+from xmlrpc.client import FastUnmarshaller
 import numpy as np
 import streamlit as st
 import pandas as pd
@@ -58,8 +59,7 @@ def sidebar_controllers():
 
     current_data = dataset_selector() # loads global variable current_data 
 
-    x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely = column_selector(current_data)
-
+    x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info = column_selector(current_data)
 
     model_type = model_selector(goal)
 
@@ -67,8 +67,9 @@ def sidebar_controllers():
         expend_sidebar()
 
     validation_split, epochs, model, json_param = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
+    # footer()    
 
-    footer()    
+    results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info}
 
     return (
         #dataset,
@@ -82,22 +83,20 @@ def sidebar_controllers():
         validation_split,
         goal,
         labely,
-        #degree,
+        results
     )
 
 
 def body(
-    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal, labely # noise may be interesting, but less important to the users
+    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal, labely, results # noise may be interesting, but less important to the users
 ):
     # introduction()
 
     st.subheader(f'{model_type} Results')
     col1, col2 = st.columns((1, 1))
-
     with col1:
         confusion_placeholder = st.empty()
         plot_placeholder = st.empty()
-
     with col2:
         duration_placeholder = st.empty()
         model_url_placeholder = st.empty()
@@ -110,6 +109,7 @@ def body(
     # x_train, x_test = add_polynomial_features(x_train, x_test, degree)
     model_url = get_model_url(model_type)
     
+    st.sidebar.write('Download result')
     # 1) Rregression Models -> R-squared, MSE
     if model_type in ('Linear Regression', 'SVR'):
         (   
@@ -130,7 +130,7 @@ def body(
             "test_mse": test_mse, 
         }
 
-        st.download_button(label = 'Download model', data = pickle.dumps(model), file_name = 'model.pkl')
+        st.sidebar.download_button(label = 'Download model (pkl or h5)', data = pickle.dumps(model), file_name = 'model.pkl')
     # 2) Keras NN -> R-squared, MSE
     elif model_type in ('Keras Neural Network'):
         (   
@@ -144,7 +144,7 @@ def body(
 
         model.save('model.h5')
         with open('model.h5', 'rb') as fp:
-            st.download_button(label = 'Download model', data = fp, file_name = 'model.h5')
+            st.sidebar.download_button(label = 'Download model (pkl or h5)', data = fp, file_name = 'model.h5')
 
     # 3) Classification Models -> f1, accuracy
     elif model_type in ('SVC'):
@@ -167,7 +167,7 @@ def body(
             "test_f1": test_f1, 
         }
 
-        st.download_button(label = 'Download model', data = pickle.dumps(model), file_name = 'model.pkl')
+        st.sidebar.download_button(label = 'Download model (pkl or h5)', data = pickle.dumps(model), file_name = 'model.pkl')
 
     # with open('tmp_result/metrics.txt', 'w') as f:
     #     for item in metrics.values(): # train rs, train mse, test sq, test mse
@@ -202,13 +202,31 @@ def body(
     tips_header_placeholder.subheader(f"**Tips on the {model_type} 💡 **")
     tips_placeholder.info(model_tips)
     
-
-    # -------------------------------- save files and zip
     predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
-    predicted_values.to_csv('tmp_result/predicted_values.csv', header=['index', 'y_test', 'pred'], index=False)
-    # output_csv()
-    # zip_dir(f'result/myfile', 'tmp_result') ##################################################
-    # download_result()
+    predicted_values.columns = ['index', 'y_test', 'pred']
+    
+
+    # save result
+    lebely3 = None
+    if labely is not None:
+        labely2 = labely.transpose()
+        labely2.columns = ['ylevels']
+        lebely3 = str(labely2.to_dict()['ylevels'])
+
+    dict_result = {
+        'param': results['json_param'],
+        'name_x': results['name_x'],
+        'name_y': results['name_y'],
+        'test_idx': predicted_values['index'].astype(str).str.cat(sep=','),
+        'test_y': predicted_values['y_test'].astype(str).str.cat(sep=','),
+        'test_pred': predicted_values['pred'].astype(str).str.cat(sep=','),
+        'encoding_y': lebely3
+    }
+    
+    # st.write(metrics)
+    df_result = pd.concat([pd.DataFrame([dict_result]), pd.DataFrame([metrics])], axis=1)
+    df_result = df_result.to_csv(index=False).encode('utf-8')
+    st.sidebar.download_button('Download model information (csv)', data=df_result, file_name='result.csv')
 
 def header():
     introduction()
@@ -226,7 +244,8 @@ if __name__ == "__main__":
         epochs,
         validation_split,
         goal,
-        labely
+        labely,
+        results,
         # degree,
     ) = sidebar_controllers()
     body(
@@ -241,4 +260,5 @@ if __name__ == "__main__":
         validation_split,
         goal,
         labely,
+        results,
     )

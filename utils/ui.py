@@ -131,13 +131,15 @@ def labelencoder(y, yy):
     st.markdown('- Y label encoding information')
     labely = pd.DataFrame(label_encoder.classes_).transpose()
     st.write(labely)
-    labely.to_csv(f'tmp_result/encoding_y_{yy}.csv', sep=',', index=True)
+
+    # labely.to_csv(f'tmp_result/encoding_y_{yy}.csv', sep=',', index=True)
 
     return cat_y, labely
 
 
 def onehot_encoder(df):
     # One-hot encoding if there is a charictar variable in X
+    ohe_info = None
     for var in df:
         if is_categorical(df, var):
             enc = OneHotEncoder(handle_unknown='ignore')
@@ -146,15 +148,15 @@ def onehot_encoder(df):
             var_ohe.columns = colname_ohe
             
             ohe_info = var_ohe.drop_duplicates(ignore_index=True)
-            ohe_info.to_csv(f'tmp_result/encoding_x_{var}.csv', sep=',', index=False)
+            # ohe_info.to_csv(f'tmp_result/encoding_x_{var}.csv', sep=',', index=False)
 
             df = pd.merge(df, var_ohe, left_index=True, right_index=True, how='left')
             df = df.drop(var, axis=1)
 
-            st.markdown('- One hot encoding information for X')
+            st.markdown(f'- One hot encoding information for X: "{var}"')
             st.write(ohe_info)
 
-    return df        
+    return df, ohe_info    
 
 
 def column_selector(current_data):
@@ -233,7 +235,7 @@ def column_selector(current_data):
     # if Y is numeric & goal == 'Classification' -> convert it to factor
 
     # One-hot encoding if there is a charictar variable in X
-    x = onehot_encoder(x)
+    x, ohe_info = onehot_encoder(x)
 
     st.markdown(
         """
@@ -243,20 +245,20 @@ def column_selector(current_data):
     )
     st.dataframe(x.head(1)) # Show one-hot encoded x
 
-    # For saving results
-    with open('tmp_result/y.txt', 'w') as f:
-        f.write(f'"{yy}"')
+    # # For saving results
+    var_names = {'y':yy, 'x':x.columns}
+    # with open('tmp_result/y.txt', 'w') as f:
+    #     f.write(f'"{yy}"')
 
-    with open('tmp_result/x.txt', 'w') as f:
-        for item in x.columns:
-            f.write(f'"{item}";')
+    # with open('tmp_result/x.txt', 'w') as f:
+    #     for item in x.columns:
+    #         f.write(f'"{item}";')
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234) ############################### test train split
     input_shape = x.shape[1] # number of variables 
 
     nclasses = len(set(y))
-
-    return x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely
+    return x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info
 
 
 def createFolder(directory):
