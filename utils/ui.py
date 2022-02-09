@@ -157,9 +157,6 @@ def onehot_encoder(df):
     return df        
 
 
-def update_submit_counter():
-    st.session_state.submit_counter +=1
-
 def column_selector(current_data):
     
         
@@ -187,7 +184,7 @@ def column_selector(current_data):
 
     with col3:
         if is_categorical(current_data, yy):
-            goal = st.radio('Goal', ['Classification'], index=0) 
+            goal = st.radio('Goal', ['Regression','Classification'], index=1)
         else:
             goal = st.radio('Goal', ['Regression','Classification'], index=0)
 
