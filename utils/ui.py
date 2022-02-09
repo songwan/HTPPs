@@ -56,8 +56,11 @@ def dataset_selector():
             current_data = read_csv(uploaded_file)
             dataset = "upload"
         else:
-            st.write("#### Or, choose a pre-loaded dataset")
-            dataset = st.selectbox("Choose a dataset", options=("IRRI (2016)","iris")) #########################################
+            # st.write("#### Or, choose a pre-loaded dataset")
+            # dataset = st.selectbox("Choose a dataset", options=("IRRI (2016)","iris")) #########################################
+            st.write("#### Or, explore with a pre-loaded dataset")
+            dataset = "IRRI (2016)"
+
             if dataset == "IRRI (2016)":
                 current_data = read_csv('data/2016DS_merged.csv')
             elif dataset == 'iris':
