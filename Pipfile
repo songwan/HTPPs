@@ -4,19 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-scikit-learn = "*"
+absl-py = "==1.0.0"
 pandas = "*"
-streamlit = "*"
-jupyter = "*"
-matplotlib = "*"
-black = "*"
-altair = "*"
-vega-datasets = "*"
-mlxtend = "*"
+numpy = "*"
 plotly = "*"
-plotly-express = "*"
-streamlit-metrics = "*"
-pipreqs = "*"
+streamlit = "*"
+matplotlib = "*"
+sklearn = "*"
+tensorflow = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 
