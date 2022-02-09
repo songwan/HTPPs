@@ -29,7 +29,7 @@ def read_csv(path):
     return pd.read_csv(path)
 
 def introduction():
-    st.title("** Machine Learning Models for HTP phenotype prediction **")
+    st.title("Machine Learning Models for HTP phenotype prediction")
     st.subheader("Predict phenotypes from indices and assess the accuracy of predictions")
     st.image('./images/field.tif')
     st.markdown(
@@ -90,18 +90,18 @@ def parameter_selector(model_type, goal, nclasses, input_shape=None):
             validation_split = None
             
             if model_type == "Linear Regression":
-                model = regression_param_selector()
+                model, json_param = regression_param_selector()
 
             elif model_type == "Keras Neural Network":
-                validation_split, epochs, model = knn_param_selector(goal, nclasses, input_shape=input_shape)
+                validation_split, epochs, model, json_param = knn_param_selector(goal, nclasses, input_shape=input_shape)
             
             elif model_type == "SVR":
-                model = svr_param_selector()
+                model, json_param = svr_param_selector()
 
             elif model_type == 'SVC':
-                model = svc_param_selector()
+                model, json_param = svc_param_selector()
 
-            return validation_split, epochs, model
+            return validation_split, epochs, model, json_param
 
 def footer():
     st.sidebar.markdown("---")
@@ -267,19 +267,19 @@ def createFolder(directory):
         print ('Error: Creating directory. ' +  directory)
 
 # First need to save result to zip format
-def zip_dir(zip_name, dir_path):
-    zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
-    new_zips = zipfile.ZipFile(zip_path, 'w')
-    dir_path = dir_path + '/'
+# def zip_dir(zip_name, dir_path):
+#     zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
+#     new_zips = zipfile.ZipFile(zip_path, 'w')
+#     dir_path = dir_path + '/'
  
-    for root, directory, files in os.walk(dir_path):
-        for file in files: # ['model.h5','predicted_values.csv', 'evaluation_result.csv']: 
-            path = os.path.join(root, file)
-            new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
+#     for root, directory, files in os.walk(dir_path):
+#         for file in files: # ['model.h5','predicted_values.csv', 'evaluation_result.csv']: 
+#             path = os.path.join(root, file)
+#             new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
 
-    new_zips.close()
+#     new_zips.close()
  
-    shutil.rmtree(dir_path) # remove all files including tmp_result
+#     shutil.rmtree(dir_path) # remove all files including tmp_result
     
 # def zip_dir(zip_name, dir_path):
 #     zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
@@ -300,11 +300,13 @@ def zip_dir(zip_name, dir_path):
 #     shutil.rmtree(dir_path) # remove all files including tmp_result
 
 
-def download_result():
-    with open("result/myfile.zip", "rb") as fp:
-        btn = st.download_button(
-            label="Download model results (.zip)",
-            data=fp,
-            file_name=f"myfile-out.zip",
-            mime="application/zip"
-        )
+# def download_result():
+#     with open("result/myfile.zip", "rb") as fp:
+#         btn = st.download_button(
+#             label="Download model results (.zip)",
+#             data=fp,
+#             file_name=f"myfile-out.zip",
+#             mime="application/zip"
+#         )
+
+# def download_model(model):

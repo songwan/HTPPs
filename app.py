@@ -1,6 +1,8 @@
 import numpy as np
 import streamlit as st
 import pandas as pd
+import pickle
+import keras
 from utils.functions import (
     # add_polynomial_features,
     # generate_data,
@@ -12,7 +14,7 @@ from utils.functions import (
     train_classification_model,
     train_keras_model,
     train_regression_model,
-    output_csv,
+    # output_csv,
     set_sidebar_width,
 )
 
@@ -25,9 +27,9 @@ from utils.ui import (
     model_selector,
     parameter_selector,
     column_selector,
-    zip_dir,
+    # zip_dir,
     createFolder,
-    download_result,
+    # download_result,
 )
 
 st.set_page_config(
@@ -64,7 +66,7 @@ def sidebar_controllers():
     if model_type in ('Keras Neural Network'):
         expend_sidebar()
 
-    validation_split, epochs, model = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
+    validation_split, epochs, model, json_param = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
 
     footer()    
 
@@ -128,7 +130,7 @@ def body(
             "test_mse": test_mse, 
         }
 
-
+        st.download_button(label = 'Download model', data = pickle.dumps(model), file_name = 'model.pkl')
     # 2) Keras NN -> R-squared, MSE
     elif model_type in ('Keras Neural Network'):
         (   
@@ -139,13 +141,10 @@ def body(
             history,
             metrics,
         ) = train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal)
-            
-        # metrics = {
-        #     "train_rsquare": train_rsquare, 
-        #     "train_mse": train_mse, 
-        #     "test_rsquare": test_rsquare, 
-        #     "test_mse": test_mse, 
-        # }
+
+        model.save('model.h5')
+        with open('model.h5', 'rb') as fp:
+            st.download_button(label = 'Download model', data = fp, file_name = 'model.h5')
 
     # 3) Classification Models -> f1, accuracy
     elif model_type in ('SVC'):
@@ -168,9 +167,11 @@ def body(
             "test_f1": test_f1, 
         }
 
-    with open('tmp_result/metrics.txt', 'w') as f:
-        for item in metrics.values(): # train rs, train mse, test sq, test mse
-            f.write(f'{item},')
+        st.download_button(label = 'Download model', data = pickle.dumps(model), file_name = 'model.pkl')
+
+    # with open('tmp_result/metrics.txt', 'w') as f:
+    #     for item in metrics.values(): # train rs, train mse, test sq, test mse
+    #         f.write(f'{item},')
 
     model_tips = get_model_tips(model_type)
 
@@ -205,9 +206,9 @@ def body(
     # -------------------------------- save files and zip
     predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
     predicted_values.to_csv('tmp_result/predicted_values.csv', header=['index', 'y_test', 'pred'], index=False)
-    output_csv()
-    zip_dir(f'result/myfile', 'tmp_result') ##################################################
-    download_result()
+    # output_csv()
+    # zip_dir(f'result/myfile', 'tmp_result') ##################################################
+    # download_result()
 
 def header():
     introduction()

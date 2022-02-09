@@ -157,7 +157,7 @@ def knn_param_selector(goal, nclasses, input_shape=None):
         'kernel_initializer':layer_kernelinits, 'optimizer':optimizer_selector, 'learning_rate':lr, 'loss':loss, 'metrics':nn_metrics, 'epochs':epochs, 'validation_split':validation_split}
     
     json_params = json.dumps(params)
-    with open('tmp_result/params.txt', 'w') as f:
-        f.write(json_params)
+    # with open('tmp_result/params.txt', 'w') as f:
+    #     f.write(json_params)
 
-    return validation_split, epochs, model
+    return validation_split, epochs, model, json_params

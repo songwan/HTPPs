@@ -9,7 +9,7 @@ def regression_param_selector():
     model = LinearRegression(**params)
 
     json_params = json.dumps(params)
-    with open('tmp_result/params.txt', 'w') as f:
-        f.write(json_params)
+    # with open('tmp_result/params.txt', 'w') as f:
+    #     f.write(json_params)
 
-    return model
+    return model, json_params

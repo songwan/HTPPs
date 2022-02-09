@@ -330,17 +330,17 @@ def set_sidebar_width(width):
         </style>
     ''',unsafe_allow_html=True)
     
-def output_csv():
-    with open('tmp_result/params.txt', 'r') as f:
-        params = f.read()
-    with open('tmp_result/x.txt', 'r') as f:
-        x = f.read()
-    with open('tmp_result/y.txt', 'r') as f:
-        y = f.read()
-    with open('tmp_result/metrics.txt', 'r') as f:
-        metrics = f.read()
+# def output_csv():
+#     with open('tmp_result/params.txt', 'r') as f:
+#         params = f.read()
+#     with open('tmp_result/x.txt', 'r') as f:
+#         x = f.read()
+#     with open('tmp_result/y.txt', 'r') as f:
+#         y = f.read()
+#     with open('tmp_result/metrics.txt', 'r') as f:
+#         metrics = f.read()
     
-    metrics = metrics.split(',')[0:4] # train rs, train mse, test sq, test mse
+#     metrics = metrics.split(',')[0:4] # train rs, train mse, test sq, test mse
     
-    evaluation = pd.DataFrame({'params':params, 'y':y, 'x':x, 'rsq.train':metrics[0], 'mse.train':metrics[1], 'rsq.test':metrics[2], 'mse.test':metrics[3]}, index=[0])
-    evaluation.to_csv('tmp_result/evaluation_result.csv', sep=',', index=False)
+#     evaluation = pd.DataFrame({'params':params, 'y':y, 'x':x, 'rsq.train':metrics[0], 'mse.train':metrics[1], 'rsq.test':metrics[2], 'mse.test':metrics[3]}, index=[0])
+#     evaluation.to_csv('tmp_result/evaluation_result.csv', sep=',', index=False)
