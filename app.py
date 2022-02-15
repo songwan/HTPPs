@@ -79,11 +79,10 @@ def sidebar_controllers():
 
         model_type = model_selector(goal)
 
-        if model_type in ('Keras Neural Network'):
-            st.form_submit_button('Expand/shrink sidebar', on_click=update_sidebar_size)
-
         validation_split, epochs, model, json_param = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
 
+        if model_type in ('Keras Neural Network'):
+            st.form_submit_button('Expand/shrink sidebar', on_click=update_sidebar_size)
         st.form_submit_button('Update parameters', on_click=update_run_counter(goal, y_test))
 
         # footer()    
@@ -98,9 +97,9 @@ def sidebar_controllers():
         else:
             resize_sidebar(22)
 
-
-    with st.sidebar.expander('Confirmation', True):
-        run_body = st.radio('Do you want to train the model based on the above parameters and display the results?', ['Yes', 'No'], 1)
+    with st.sidebar.expander('Train model', True):
+        st.info('Please make sure that parameters were set as intended befor running the model')
+        run_body = st.checkbox('Run the model', False)
 
     results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info}
 
@@ -129,7 +128,7 @@ def body(
     column_display(current_data, x)
 
     # if st.session_state.show_result:
-    if run_body =='Yes':
+    if run_body:
         # introduction()
 
         st.subheader(f'{model_type} Results')
@@ -270,7 +269,7 @@ def body(
 
     else:
         st.subheader('Results')
-        st.warning("To display the result, select 'Yes' in the Confirmation box ")
+        st.warning("To display the result, select  the checkbox")
 
 def header():
     introduction()

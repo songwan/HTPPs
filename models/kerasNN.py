@@ -24,12 +24,12 @@ def layers_layout(goal, nclasses, number_layers):
                 count +=1
 
                 if count==1:
-                    n_neurons = st.number_input(f"input layer", 1, 1000000, 100, 25) # first layer
+                    n_neurons = st.number_input(f"input layer", 1, 10000, 100, 25) # first layer
 
                 elif count==number_layers:
                     n_neurons = st.number_input(f"output layer (automatic)", last_n_neuron[goal], last_n_neuron[goal], last_n_neuron[goal], 0) # last layer has only 1 neuron by default
                 else:
-                   n_neurons = st.number_input(f"layer {count}", 1, 1000000, 100, 25) # middle layers
+                   n_neurons = st.number_input(f"layer {count}", 1, 10000, 100, 25) # middle layers
 
                 layer_sizes.append(n_neurons)
 

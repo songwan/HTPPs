@@ -147,8 +147,6 @@ def onehot_encoder(df):
 
     return df, ohe_info    
 
-
-
 def column_display(current_data, x):
     st.subheader('Dataset')
     df_dtype = current_data.dtypes.astype(str)    
