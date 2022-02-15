@@ -94,9 +94,9 @@ def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labe
 
 def plot_classification_and_metrics(
         y_train, y_test, metrics, y_train_pred, y_test_pred, labely
-):
+):  
     conf_mat = confusion_matrix(y_test, y_test_pred)
-    fig_conf = plot_confusion_matrix(conf_mat, target_names=labely.transpose()[0].tolist(), title="Confusion matrix")
+    fig_conf = plot_confusion_matrix(conf_mat, target_names=labely.transpose()[0].tolist(), title="Contingency matrix", normalize=False)
     
     fig = make_subplots(
         rows=1,
@@ -324,12 +324,3 @@ def get_model_url(model_type):
     model_to_pkg = {'Keras Neural Network':'keras', 'SVR': 'scikit-learn', 'Linear Regression': 'scikit-learn', 'SVC': 'scikit-learn'}
     text = f"**Link to {model_to_pkg[model_type]} official documentation [here]({model_url}) 💻 **"
     return text
-
-
-def set_sidebar_width(width):
-    st.markdown(f'''
-        <style>
-            section[data-testid="stSidebar"] .css-ng1t4o {{width: {width}rem;}}
-            section[data-testid="stSidebar"] .css-1d391kg {{width: {width}rem;}}
-        </style>
-    ''',unsafe_allow_html=True)

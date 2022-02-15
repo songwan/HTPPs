@@ -43,68 +43,55 @@ def introduction():
     )
 
 def dataset_selector():
-    dataset_container = st.sidebar.expander("Configure a dataset", True)
+
     global current_data
     current_data = None
 
-    with dataset_container:
+    uploaded_file = st.file_uploader("Upload CSV file", key='data_uploader')
+
+    if uploaded_file is not None:
         
-        uploaded_file = st.file_uploader("Upload CSV file", key='data_uploader')
+        current_data = read_csv(uploaded_file)
+        dataset = "upload"
+    else:
+        # st.write("#### Or, choose a pre-loaded dataset")
+        # dataset = st.selectbox("Choose a dataset", options=("IRRI (2016)","iris")) #########################################
+        st.write("#### Or, explore with a pre-loaded dataset")
+        dataset = "IRRI (2016)"
 
-        if uploaded_file is not None:
-            
-            current_data = read_csv(uploaded_file)
-            dataset = "upload"
-        else:
-            # st.write("#### Or, choose a pre-loaded dataset")
-            # dataset = st.selectbox("Choose a dataset", options=("IRRI (2016)","iris")) #########################################
-            st.write("#### Or, explore with a pre-loaded dataset")
-            dataset = "IRRI (2016)"
-
-            if dataset == "IRRI (2016)":
-                current_data = read_csv('data/2016DS_merged.csv')
-            elif dataset == 'iris':
-                current_data = read_csv('data/iris.csv')
+        if dataset == "IRRI (2016)":
+            current_data = read_csv('data/2016DS_merged.csv')
+        elif dataset == 'iris':
+            current_data = read_csv('data/iris.csv')
  
     return current_data
 
-
 def model_selector(goal):
-    model_training_container = st.sidebar.expander("Choose a model", True)
-    with model_training_container:
-        models = {'Regression':['Linear Regression', 'Keras Neural Network', 'SVR'], 'Classification':['SVC', 'Keras Neural Network']}
-        model_type = st.selectbox("Models", models[goal])
+
+    models = {'Regression':['Linear Regression', 'Keras Neural Network', 'SVR'], 'Classification':['SVC', 'Keras Neural Network']}
+    model_type = st.selectbox("Models", models[goal])
+
     return model_type
-
-def update_run_counter():
-    st.session_state.run_counter +=1
-
 
 def parameter_selector(model_type, goal, nclasses, input_shape=None):
 
-    with st.sidebar.expander('Set parameters', True):
-        with st.sidebar.form("run_form2"):
-            st.form_submit_button('Run', on_click=update_run_counter)
-        
-            if "run_counter" not in st.session_state:
-                st.session_state.run_counter = 0
+    epochs = None
+    validation_split = None
+    
+    if model_type == "Linear Regression":
+        model, json_param = regression_param_selector()
 
-            epochs = None
-            validation_split = None
-            
-            if model_type == "Linear Regression":
-                model, json_param = regression_param_selector()
+    elif model_type == "Keras Neural Network":
+        validation_split, epochs, model, json_param = knn_param_selector(goal, nclasses, input_shape=input_shape)
+    
+    elif model_type == "SVR":
+        model, json_param = svr_param_selector()
 
-            elif model_type == "Keras Neural Network":
-                validation_split, epochs, model, json_param = knn_param_selector(goal, nclasses, input_shape=input_shape)
-            
-            elif model_type == "SVR":
-                model, json_param = svr_param_selector()
+    elif model_type == 'SVC':
+        model, json_param = svc_param_selector()
 
-            elif model_type == 'SVC':
-                model, json_param = svc_param_selector()
+    return validation_split, epochs, model, json_param
 
-            return validation_split, epochs, model, json_param
 
 def footer():
     st.sidebar.markdown("---")
@@ -116,7 +103,6 @@ def footer():
         unsafe_allow_html=True,
     )
 
-# -----------------------------------------------------------------------------------------------------------------
 
 def is_categorical(df, colname):
     # if the column is string, then assume it to be categorical
@@ -131,9 +117,9 @@ def labelencoder(y, yy):
     label_encoder = LabelEncoder()
     cat_y = label_encoder.fit_transform(y)
     cat_y = pd.Series(cat_y)
-    st.markdown('- Y label encoding information')
+    # st.markdown('- Y label encoding information')
     labely = pd.DataFrame(label_encoder.classes_).transpose()
-    st.write(labely)
+    # st.write(labely)
 
     # labely.to_csv(f'tmp_result/encoding_y_{yy}.csv', sep=',', index=True)
 
@@ -162,45 +148,59 @@ def onehot_encoder(df):
     return df, ohe_info    
 
 
-def column_selector(current_data):
-    
-        
-    st.subheader("Choose phenotype to predict, and predictors")
 
+def column_display(current_data, x):
+    st.subheader('Dataset')
     df_dtype = current_data.dtypes.astype(str)    
-    df_to_display = pd.DataFrame(current_data.head().to_numpy(), columns = [current_data.columns, df_dtype]) # df with dtypes
+    df_to_display = pd.DataFrame(current_data.head().to_numpy(), columns = [current_data.columns, df_dtype]) # df with dtypes 
     st.dataframe(df_to_display)
-
+    
     col_names = list(current_data.columns)
 
-    col1, col2, col3 = st.columns((1, 3, 1))
-
-    with col1:
-        if current_data.shape[1] < 10: # for iris sample
-            yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=0)
-        else:
-            yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=73) # 'HT2.x'
-
-    with col2:
-        if current_data.shape[1] < 10: # for iris sample
-            xx = st.text_input(label='Predictors (X)', value=f'{col_names[1]}, {col_names[2]}:{col_names[3]}')
-        else:
-            xx = st.text_input(label='Predictors (X)', value=f'{col_names[74]}, {col_names[75]}, {col_names[77]}:{col_names[95]}')
-
-    with col3:
-        if is_categorical(current_data, yy):
-            goal = st.radio('Goal', ['Regression','Classification'], index=1)
-        else:
-            goal = st.radio('Goal', ['Regression','Classification'], index=0)
-
+    # st.markdown(
+    #     """
+    # - Pick a variable from the dataset
+    #     - Y: select a numeric variable for prediction (e.g. `HT.x`)
+    #     - X: use `,` for single selection, and `:` for sequence selection
+    #         - For example, `PC1, PC2, R.x:B.x` selects PC1, PC2, and all variables between R.x and B.x 
+    # """
+    # )
     st.markdown(
         """
-    - Pick a variable from the dataset
-        - Y: select a numeric variable for prediction (e.g. `HT.x`)
-        - X: use `,` for single selection, and `:` for sequence selection
-            - For example, `PC1, PC2, R.x:B.x` selects PC1, PC2, and all variables between R.x and B.x 
+    - Selected predictors (X)
+        - Rows with NA's are removed
     """
     )
+    st.dataframe(x.head(1)) # Show one-hot encoded x
+
+    st.markdown("---")
+
+def column_selector(current_data):
+
+    df_dtype = current_data.dtypes.astype(str)    
+    col_names = list(current_data.columns)
+
+    if current_data.shape[1] < 10: # for iris sample
+        yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=0)
+    else:
+        yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=73) # 'HT2.x'
+        
+    if current_data.shape[1] < 10: # for iris sample
+        xx = st.text_input(label='Predictors (X)', value=f'{col_names[1]}, {col_names[2]}:{col_names[3]}')
+    else:
+        xx = st.text_input(label='Predictors (X)', value=f'{col_names[74]}, {col_names[75]}, {col_names[77]}:{col_names[95]}')
+    
+    st.info(
+    """
+        - Use ',' for single selection
+        - Use ':' for sequence selection
+    """
+    )
+
+    if is_categorical(current_data, yy):
+        goal = st.radio('Goal', ['Regression','Classification'], index=1)
+    else:
+        goal = st.radio('Goal', ['Regression','Classification'], index=0)
 
     # Parse the selected predictors text input data
     xx = list(map(str.strip, str.split(xx, sep=',')))
@@ -240,28 +240,14 @@ def column_selector(current_data):
     # One-hot encoding if there is a charictar variable in X
     x, ohe_info = onehot_encoder(x)
 
-    st.markdown(
-        """
-    - Selected predictors (X)
-        - Rows with NA's are removed
-    """
-    )
-    st.dataframe(x.head(1)) # Show one-hot encoded x
-
     # # For saving results
     var_names = {'y':yy, 'x':x.columns}
-    # with open('tmp_result/y.txt', 'w') as f:
-    #     f.write(f'"{yy}"')
-
-    # with open('tmp_result/x.txt', 'w') as f:
-    #     for item in x.columns:
-    #         f.write(f'"{item}";')
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234) ############################### test train split
     input_shape = x.shape[1] # number of variables 
 
     nclasses = len(set(y))
-    return x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info
+    return x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x
 
 
 def createFolder(directory):
@@ -270,48 +256,3 @@ def createFolder(directory):
             os.makedirs(directory)
     except OSError:
         print ('Error: Creating directory. ' +  directory)
-
-# First need to save result to zip format
-# def zip_dir(zip_name, dir_path):
-#     zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
-#     new_zips = zipfile.ZipFile(zip_path, 'w')
-#     dir_path = dir_path + '/'
- 
-#     for root, directory, files in os.walk(dir_path):
-#         for file in files: # ['model.h5','predicted_values.csv', 'evaluation_result.csv']: 
-#             path = os.path.join(root, file)
-#             new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
-
-#     new_zips.close()
- 
-#     shutil.rmtree(dir_path) # remove all files including tmp_result
-    
-# def zip_dir(zip_name, dir_path):
-#     zip_path = os.path.join(os.path.abspath(os.path.join(dir_path, os.pardir)), zip_name + '.zip')
-#     new_zips = zipfile.ZipFile(zip_path, 'w')
-#     dir_path = dir_path + '/'
- 
-#     for root, directory, files in os.walk(dir_path):
-#         for file in files: # ['model.h5','predicted_values.csv', 'evaluation_result.csv']: 
-#             if (file == 'model.h5') or (file == 'model.pkl') or (file == 'predicted_values.csv') or (file == 'evaluation_result.csv'):
-#                 path = os.path.join(root, file)
-#                 new_zips.write(path, arcname=os.path.relpath(os.path.join(root, file), dir_path), compress_type=zipfile.ZIP_DEFLATED)
-
-#             else:
-#                 next
-
-#     new_zips.close()
- 
-#     shutil.rmtree(dir_path) # remove all files including tmp_result
-
-
-# def download_result():
-#     with open("result/myfile.zip", "rb") as fp:
-#         btn = st.download_button(
-#             label="Download model results (.zip)",
-#             data=fp,
-#             file_name=f"myfile-out.zip",
-#             mime="application/zip"
-#         )
-
-# def download_model(model):

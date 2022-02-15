@@ -126,12 +126,12 @@ def knn_param_selector(goal, nclasses, input_shape=None):
     optimizer = eval(f'tf.keras.optimizers.{optimizer_selector}(learning_rate={lr})')
     loss = st.selectbox("Loss", loss_by_goal[goal])
     nn_metrics = st.selectbox("Metrics", ('mae', 'acc'), key="keras metrics")
-    epochs = st.number_input('Epochs', 1, 1000, 10, 10)
+    epochs = st.number_input('Epochs', 1, 1000, 25, 10)
     validation_split = st.number_input('Validation split ratio', 0.0, 1.0, 0.2, 0.1)
 
     layer_sizes = tuple(layer_sizes)
     layer_activations = tuple(layer_activations)
-    layer_kernelinits = tuple(layer_kernelinits)
+    layer_kernelinits = tuple(layer_kernelinits) 
     
     #### Build Keras model
     model = Sequential()
