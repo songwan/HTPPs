@@ -77,12 +77,13 @@ def parameter_selector(model_type, goal, nclasses, input_shape=None):
 
     epochs = None
     validation_split = None
-    
+    batch_size = None
+
     if model_type == "Linear Regression":
         model, json_param = regression_param_selector()
 
     elif model_type == "Keras Neural Network":
-        validation_split, epochs, model, json_param = knn_param_selector(goal, nclasses, input_shape=input_shape)
+        validation_split, epochs, batch_size, model, json_param = knn_param_selector(goal, nclasses, input_shape=input_shape)
     
     elif model_type == "SVR":
         model, json_param = svr_param_selector()
@@ -90,7 +91,7 @@ def parameter_selector(model_type, goal, nclasses, input_shape=None):
     elif model_type == 'SVC':
         model, json_param = svc_param_selector()
 
-    return validation_split, epochs, model, json_param
+    return validation_split, epochs, batch_size, model, json_param
 
 
 def footer():
@@ -129,32 +130,58 @@ def labelencoder(y, yy):
 def onehot_encoder(df):
     # One-hot encoding if there is a charictar variable in X
     ohe_info = None
+    ohe_info_concat = pd.DataFrame()
     for var in df:
         if is_categorical(df, var):
             enc = OneHotEncoder(handle_unknown='ignore')
             var_ohe = pd.DataFrame(enc.fit_transform(pd.DataFrame(df[var])).toarray())
+            var_ohe.index = df.index
+            
             colname_ohe = enc.get_feature_names_out([var])
             var_ohe.columns = colname_ohe
-            
             ohe_info = var_ohe.drop_duplicates(ignore_index=True)
-            # ohe_info.to_csv(f'tmp_result/encoding_x_{var}.csv', sep=',', index=False)
+            ohe_info_concat = pd.concat([ohe_info_concat, ohe_info], axis=1)
 
             df = pd.merge(df, var_ohe, left_index=True, right_index=True, how='left')
             df = df.drop(var, axis=1)
-
-            st.markdown(f'- One hot encoding information for X: "{var}"')
-            st.write(ohe_info)
-
+            
+    ohe_info = ohe_info_concat
     return df, ohe_info    
 
-def column_display(current_data, x):
+def column_display(current_data, x, ohe_info, labely, goal):
+    y_enc_new = None
+    y_enc_origin = None
+
     st.subheader('Dataset')
     df_dtype = current_data.dtypes.astype(str)    
     df_to_display = pd.DataFrame(current_data.head().to_numpy(), columns = [current_data.columns, df_dtype]) # df with dtypes 
     st.dataframe(df_to_display)
     
-    col_names = list(current_data.columns)
+    if labely is not None:
+        st.write("- Y encoding")        
+        st.dataframe(labely)
+        
+        y_enc_origin = labely.columns.tolist()
 
+        if goal == 'Regression':
+            st.warning('If you want regression on character Y, please make sure that the numerical encoding is as intended.')
+            st.write('- (Optional) you can also set user-defined encoding for character Y')
+
+            labely_n = labely.shape[1]
+            labely_usr = eval(st.text_input("Y encoding (user-defined)", "6,2,4,9,11,...,10"))
+            labely_usr_n = len(labely_usr)
+
+            if (Ellipsis not in labely_usr):
+                if labely_usr_n==labely_n:
+                    labely.columns = labely_usr
+                    st.write(labely)
+                    y_enc_new = labely.columns.tolist()
+                else:
+                    st.error(f'The number of labels to encode is {labely_n} but have {labely_usr_n} encodings')
+            else: 
+                st.info(f'Please provide your own encoding to apply.')
+
+    col_names = list(current_data.columns)
     # st.markdown(
     #     """
     # - Pick a variable from the dataset
@@ -163,15 +190,23 @@ def column_display(current_data, x):
     #         - For example, `PC1, PC2, R.x:B.x` selects PC1, PC2, and all variables between R.x and B.x 
     # """
     # )
+
+    if ohe_info.shape[0]!=0:
+        st.write('- One-hot encoding information for categorical X')
+        st.dataframe(ohe_info)
+
     st.markdown(
         """
     - Selected predictors (X)
         - Rows with NA's are removed
     """
     )
-    st.dataframe(x.head(1)) # Show one-hot encoded x
+    st.dataframe(x.head()) # Show one-hot encoded x
 
     st.markdown("---")
+
+    return y_enc_origin, y_enc_new, labely
+
 
 def column_selector(current_data):
 
@@ -196,7 +231,7 @@ def column_selector(current_data):
     )
 
     if is_categorical(current_data, yy):
-        goal = st.radio('Goal', ['Regression','Classification'], index=1)
+        goal = st.radio('Goal', ['Regression','Classification'], index=0)
     else:
         goal = st.radio('Goal', ['Regression','Classification'], index=0)
 
@@ -213,10 +248,10 @@ def column_selector(current_data):
 
     yy_idx = col_names.index(yy)
 
-    # remove rows with NA
+    # remove rows with NA *****************************
     idx = copy.deepcopy(xx_idx)
     idx.append(yy_idx) # the last column is y
-    current_data = current_data.iloc[:,idx].dropna()
+    current_data = current_data.iloc[:,idx].dropna() 
 
     # split y and x
     y = current_data.iloc[:,-1] # the last column
@@ -241,11 +276,13 @@ def column_selector(current_data):
     # # For saving results
     var_names = {'y':yy, 'x':x.columns}
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=1234) ############################### test train split
+    train_test_ratio = st.number_input("Test data ratio", 0.1, 1.0, 0.2, 0.1)
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=train_test_ratio, random_state=1234) ############################### test train split
     input_shape = x.shape[1] # number of variables 
 
     nclasses = len(set(y))
-    return x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x
+    return x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x, train_test_ratio
 
 
 def createFolder(directory):

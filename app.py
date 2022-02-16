@@ -2,7 +2,6 @@ from xmlrpc.client import FastUnmarshaller
 import numpy as np
 import streamlit as st
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 import pickle
 import keras
 from utils.functions import (
@@ -46,21 +45,26 @@ def resize_sidebar(width):
     </style>
 ''',unsafe_allow_html=True)
 
-def update_run_counter(goal, y_test):
+def update_run_counter(goal, labely):
     if "run_counter" not in st.session_state:
         st.session_state.run_counter = 0
 
     st.session_state.run_counter +=1
     
-    if (goal=='Classification') and (is_numeric_dtype(y_test)):
-        st.warning(f'Do you really want to do a classification? Y (test dataset) is numeric with {len(set(y_test.tolist()))} unique values.')
+    if labely is not None:
+        nclasses = len(labely.transpose())
+    else:
+        nclasses = None
+
+    if (goal=='Classification') and (nclasses > 20):
+        st.warning(f'Do you really want a classification? The number of class is {nclasses}.')
 
 def update_sidebar_size():
     if "size_counter" not in st.session_state:
         st.session_state.size_counter = False
 
     st.session_state.size_counter = not(st.session_state.size_counter)
-    st.sidebar.write(st.session_state.size_counter)
+    # st.sidebar.write(st.session_state.size_counter)
 
 resize_sidebar(22)
 
@@ -75,15 +79,15 @@ def sidebar_controllers():
 
     with st.sidebar.form('Options form'):
 
-        x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x = column_selector(current_data)
-
+        x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x, train_test_ratio = column_selector(current_data)
         model_type = model_selector(goal)
 
-        validation_split, epochs, model, json_param = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
+        validation_split, epochs, batch_size, model, json_param = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
+
 
         if model_type in ('Keras Neural Network'):
             st.form_submit_button('Expand/shrink sidebar', on_click=update_sidebar_size)
-        st.form_submit_button('Update parameters', on_click=update_run_counter(goal, y_test))
+        st.form_submit_button('Update parameters', on_click=update_run_counter(goal, labely))
 
         # footer()    
     
@@ -99,9 +103,9 @@ def sidebar_controllers():
 
     with st.sidebar.expander('Train model', True):
         st.info('Please make sure that parameters were set as intended befor running the model')
-        run_body = st.checkbox('Run the model', False)
+        run_body = st.checkbox('Run the model (always rerun)', False)
 
-    results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info}
+    results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info, 'test_data_ratio': train_test_ratio}
 
     return (
         #dataset,
@@ -119,13 +123,21 @@ def sidebar_controllers():
         current_data,
         x,
         run_body,
+        batch_size,
+        ohe_info,
     )
 
 
 def body(
-    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal, labely, results, current_data, x, run_body # noise may be interesting, but less important to the users
+    x_train, x_test, y_train, y_test, model, model_type, epochs, validation_split, goal, labely, results, current_data, x, run_body, batch_size, ohe_info # noise may be interesting, but less important to the users
 ):
-    column_display(current_data, x)
+    y_enc_origin, y_enc_new, labely = column_display(current_data, x, ohe_info, labely, goal)
+
+    # if new encoding was applied, update y_train, y_test
+    if y_enc_new is not None:
+        y_enc_dict = dict(zip(y_enc_origin, y_enc_new))
+        y_train = y_train.replace(y_enc_dict)
+        y_test = y_test.replace(y_enc_dict)
 
     # if st.session_state.show_result:
     if run_body:
@@ -179,7 +191,7 @@ def body(
                 y_test_pred,
                 history,
                 metrics,
-            ) = train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal)
+            ) = train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, batch_size, goal)
 
             model.save('model.h5')
             with open('model.h5', 'rb') as fp:
@@ -226,7 +238,7 @@ def body(
                 fig, fig_conf = plot_classification_and_metrics(y_train, y_test, metrics, y_train_pred, y_test_pred, labely)
                 confusion_placeholder.pyplot(fig_conf, True)
 
-            fig_history = plot_history(history)
+            fig_history = plot_history(history, goal)
             history_placeholder.pyplot(fig_history, True)
 
         elif model_type in ('SVC'):
@@ -238,7 +250,7 @@ def body(
         model_url_placeholder.markdown(model_url)
         # code_header_placeholder.header("**Retrain the same model in Python**")
         # snippet_placeholder.code(snippet)
-        tips_header_placeholder.subheader(f"**Tips on the {model_type} 💡 **")
+        tips_header_placeholder.subheader(f"Tips on the {model_type} 💡")
         tips_placeholder.info(model_tips)
         
         predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
@@ -256,6 +268,7 @@ def body(
             'param': results['json_param'],
             'name_x': results['name_x'],
             'name_y': results['name_y'],
+            'test_data_ratio': results['test_data_ratio'],
             'test_idx': predicted_values['index'].astype(str).str.cat(sep=','),
             'test_y': predicted_values['y_test'].astype(str).str.cat(sep=','),
             'test_pred': predicted_values['pred'].astype(str).str.cat(sep=','),
@@ -269,7 +282,7 @@ def body(
 
     else:
         st.subheader('Results')
-        st.warning("To display the result, select  the checkbox")
+        st.info("To display the result, select  the checkbox")
 
 def header():
     introduction()
@@ -292,6 +305,8 @@ if __name__ == "__main__":
         current_data,
         x,
         run_body,
+        batch_size,
+        ohe_info,
         # degree,
     ) = sidebar_controllers()
     body(
@@ -310,4 +325,6 @@ if __name__ == "__main__":
         current_data,
         x,
         run_body,
+        batch_size,
+        ohe_info,
     )

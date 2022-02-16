@@ -110,7 +110,8 @@ def knn_param_selector(goal, nclasses, input_shape=None):
         goal = 'Binary'
 
     loss_by_goal = {'Regression':['mean_squared_error', 'mean_absolute_error'], 'Classification':['sparse_categorical_crossentropy', 'categorical_crossentropy'], 'Binary':['binary_crossentropy']}
-    
+    metrics_by_goal = {'Regression':"mae", "Classification":"acc"}
+
     layer_sizes = []
     layer_activations = []
     layer_kernelinits = []
@@ -125,9 +126,10 @@ def knn_param_selector(goal, nclasses, input_shape=None):
     lr = st.number_input(f'Learning rate ({optimizer_selector} default: {lr_default[optimizer_selector]})', 0.0, 1.0, 0.01)
     optimizer = eval(f'tf.keras.optimizers.{optimizer_selector}(learning_rate={lr})')
     loss = st.selectbox("Loss", loss_by_goal[goal])
-    nn_metrics = st.selectbox("Metrics", ('mae', 'acc'), key="keras metrics")
+    nn_metrics = st.selectbox("Metrics", [metrics_by_goal[goal]], key="keras metrics")
     epochs = st.number_input('Epochs', 1, 1000, 25, 10)
     validation_split = st.number_input('Validation split ratio', 0.0, 1.0, 0.2, 0.1)
+    batch_size = st.number_input("Batch size", 0, 100, 32, 10)
 
     layer_sizes = tuple(layer_sizes)
     layer_activations = tuple(layer_activations)
@@ -154,10 +156,11 @@ def knn_param_selector(goal, nclasses, input_shape=None):
     model.compile(loss=loss, optimizer=optimizer, metrics=nn_metrics)
 
     params = {'n_layers': number_layers, 'units':layer_sizes, 'activation': layer_activations, 
-        'kernel_initializer':layer_kernelinits, 'optimizer':optimizer_selector, 'learning_rate':lr, 'loss':loss, 'metrics':nn_metrics, 'epochs':epochs, 'validation_split':validation_split}
+        'kernel_initializer':layer_kernelinits, 'optimizer':optimizer_selector, 'learning_rate':lr, 
+        'loss':loss, 'metrics':nn_metrics, 'epochs':epochs, 'batch size':batch_size,'validation_split':validation_split}
     
     json_params = json.dumps(params)
     # with open('tmp_result/params.txt', 'w') as f:
     #     f.write(json_params)
 
-    return validation_split, epochs, model, json_params
+    return validation_split, epochs, batch_size, model, json_params

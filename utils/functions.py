@@ -28,12 +28,13 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-def plot_history(history):
+def plot_history(history, goal):
+
+    metrics_by_goal = {'Regression':['mae','val_mae'], 'Classification':['acc', 'val_acc']}
+    labels_by_goal = {'Regression':['train mae','val mae'], 'Classification':['train acc', 'val acc']}
+
     fig, loss_ax = plt.subplots()
 
-    # st.write(history.history)
-    
-    #fig.set_figwidth(10)
     fig.set_figheight(3.5)
 
     acc_ax = loss_ax.twinx()
@@ -44,9 +45,9 @@ def plot_history(history):
     loss_ax.set_ylabel('loss')
     loss_ax.legend(loc='upper left')
     
-    acc_ax.plot(history.history['mae'], 'b', label='train mae')
-    acc_ax.plot(history.history['val_mae'], 'g', label='val mae')
-    acc_ax.set_ylabel('mae')
+    acc_ax.plot(history.history[metrics_by_goal[goal][0]], 'b', label=labels_by_goal[goal][0])
+    acc_ax.plot(history.history[metrics_by_goal[goal][1]], 'g', label=labels_by_goal[goal][1])
+    acc_ax.set_ylabel(metrics_by_goal[goal][0])
     acc_ax.legend(loc='upper right')
 
     return fig
@@ -202,7 +203,7 @@ def plot_prediction_and_metrics(
             value=metrics["test_mse"],
             title={"text": f"MSE (test)"},
             domain={"x": [0, 1], "y": [0, 1]},
-            gauge={"axis": {"range": [0, y_train.var()]}},
+            gauge={"axis": {"range": [0, pd.concat([y_train, y_test]).var()]}},
             delta={"reference": metrics["train_mse"]},
         ),
         row=2,
@@ -219,7 +220,7 @@ def plot_prediction_and_metrics(
 def norm(x, train_stats):
     return (x - train_stats['mean']) / train_stats['std']
 
-def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, goal):
+def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, batch_size, goal):
    
     t0 = time.time()
 
@@ -232,9 +233,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
     # elif goal in ('Regression'):
 
     # Fit the model
-    history = model.fit(
-        normed_x_train, y_train,
-        epochs=epochs, validation_split = validation_split, verbose=0) 
+    history = model.fit(normed_x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split = validation_split, verbose=0) 
     
     # w(history.history)
 
@@ -322,5 +321,5 @@ def get_model_tips(model_type):
 def get_model_url(model_type):
     model_url = model_urls[model_type]
     model_to_pkg = {'Keras Neural Network':'keras', 'SVR': 'scikit-learn', 'Linear Regression': 'scikit-learn', 'SVC': 'scikit-learn'}
-    text = f"**Link to {model_to_pkg[model_type]} official documentation [here]({model_url}) 💻 **"
+    text = f"Link to {model_to_pkg[model_type]} official documentation [here]({model_url}) 💻 "
     return text
