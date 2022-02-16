@@ -1,16 +1,12 @@
 # import python libraries 
 from pickle import TRUE
-import numpy as np
 import pandas as pd
 from pandas._libs.missing import NA
 from pandas.api.types import is_numeric_dtype
-from sqlalchemy import null
 import streamlit as st
 import copy
 import matplotlib.pyplot as plt
-import zipfile
 import os
-import shutil
 
 # import user-defined parameter selectors
 from models.Regression import regression_param_selector
@@ -28,6 +24,7 @@ from utils.functions import img_to_bytes
 def read_csv(path):
     return pd.read_csv(path)
 
+
 def introduction():
     st.title("Machine Learning Models for HTP phenotype prediction")
     st.subheader("Predict phenotypes from indices and assess the accuracy of predictions")
@@ -41,6 +38,7 @@ def introduction():
     -----
     """
     )
+
 
 def dataset_selector():
 
@@ -66,12 +64,14 @@ def dataset_selector():
  
     return current_data
 
+
 def model_selector(goal):
 
     models = {'Regression':['Linear Regression', 'Keras Neural Network', 'SVR'], 'Classification':['SVC', 'Keras Neural Network']}
     model_type = st.selectbox("Models", models[goal])
 
     return model_type
+
 
 def parameter_selector(model_type, goal, nclasses, input_shape=None):
 
@@ -114,16 +114,12 @@ def is_categorical(df, colname):
     else:
         return False
 
+
 def labelencoder(y, yy):
     label_encoder = LabelEncoder()
     cat_y = label_encoder.fit_transform(y)
     cat_y = pd.Series(cat_y)
-    # st.markdown('- Y label encoding information')
     labely = pd.DataFrame(label_encoder.classes_).transpose()
-    # st.write(labely)
-
-    # labely.to_csv(f'tmp_result/encoding_y_{yy}.csv', sep=',', index=True)
-
     return cat_y, labely
 
 
@@ -147,6 +143,7 @@ def onehot_encoder(df):
             
     ohe_info = ohe_info_concat
     return df, ohe_info    
+
 
 def column_display(current_data, x, ohe_info, labely, goal):
     y_enc_new = None
@@ -182,14 +179,6 @@ def column_display(current_data, x, ohe_info, labely, goal):
                 st.info(f'Please provide your own encoding to apply.')
 
     col_names = list(current_data.columns)
-    # st.markdown(
-    #     """
-    # - Pick a variable from the dataset
-    #     - Y: select a numeric variable for prediction (e.g. `HT.x`)
-    #     - X: use `,` for single selection, and `:` for sequence selection
-    #         - For example, `PC1, PC2, R.x:B.x` selects PC1, PC2, and all variables between R.x and B.x 
-    # """
-    # )
 
     if ohe_info.shape[0]!=0:
         st.write('- One-hot encoding information for categorical X')
@@ -248,7 +237,7 @@ def column_selector(current_data):
 
     yy_idx = col_names.index(yy)
 
-    # remove rows with NA *****************************
+    # remove rows with NA
     idx = copy.deepcopy(xx_idx)
     idx.append(yy_idx) # the last column is y
     current_data = current_data.iloc[:,idx].dropna() 
@@ -269,7 +258,6 @@ def column_selector(current_data):
         y, labely = labelencoder(y, yy)
 
     # if Y is numeric & goal == 'Classification' -> convert it to factor
-
     # One-hot encoding if there is a charictar variable in X
     x, ohe_info = onehot_encoder(x)
 

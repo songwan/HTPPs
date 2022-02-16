@@ -9,19 +9,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-import pickle
 import json
 import numpy as np
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import train_test_split
 from tensorflow import keras
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from models.utils import model_infos, model_urls
 from keras.utils import np_utils
-
-# from utils.ui import dataset_selector # for access to "current_data"
 
 def local_css(file_name):
     with open(file_name) as f:
@@ -51,6 +46,7 @@ def plot_history(history, goal):
     acc_ax.legend(loc='upper right')
 
     return fig
+
 
 def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labels=True, title='Confusion matrix'):
 
@@ -92,6 +88,7 @@ def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labe
     plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
     
     return fig
+
 
 def plot_classification_and_metrics(
         y_train, y_test, metrics, y_train_pred, y_test_pred, labely
@@ -140,9 +137,9 @@ def plot_classification_and_metrics(
     return fig, fig_conf
 
 
-# Plotting y vs. y_predicted scatterplot for visualizing prediction results
 def plot_prediction_and_metrics(
-        y_train, y_test, metrics, y_train_pred, y_test_pred
+    # Plotting y vs. y_predicted scatterplot for visualizing prediction results
+    y_train, y_test, metrics, y_train_pred, y_test_pred
 ):
 
     fig = make_subplots(
@@ -216,9 +213,10 @@ def plot_prediction_and_metrics(
 
     return fig
 
-# Normalize data
+
 def norm(x, train_stats):
-    return (x - train_stats['mean']) / train_stats['std']
+    return (x - train_stats['mean']) / train_stats['std'] # # Normalize data
+
 
 def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validation_split, batch_size, goal):
    
@@ -269,6 +267,7 @@ def train_keras_model(model, x_train, y_train, x_test, y_test, epochs, validatio
     # model.save(f'tmp_result/model.h5', )
     return model, duration, y_train_pred, y_test_pred, history, metrics
 
+
 def train_classification_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
     model.fit(x_train, y_train)
@@ -281,9 +280,9 @@ def train_classification_model(model, x_train, y_train, x_test, y_test):
 
     test_accuracy = np.round(accuracy_score(y_test, y_test_pred), 3)
     test_f1 = np.round(f1_score(y_test, y_test_pred, average="weighted"), 3)
-    # pickle.dump(model, open('tmp_result/model.pkl', 'wb'))
 
     return model, train_accuracy, test_accuracy, train_f1, test_f1, duration, y_train_pred, y_test_pred
+
 
 def train_regression_model(model, x_train, y_train, x_test, y_test):
     t0 = time.time()
@@ -299,10 +298,6 @@ def train_regression_model(model, x_train, y_train, x_test, y_test):
     test_mse = np.round(np.square(np.subtract(y_test, y_test_pred)).mean(), 3)
 
     duration = time.time() - t0
-
-    # pickle.dump(model, open('tmp_result/model.pkl', 'wb'))
-
-
 
     return model, train_rsquare, test_rsquare, train_mse, test_mse, duration, y_train_pred, y_test_pred
 

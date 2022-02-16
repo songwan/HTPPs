@@ -1,12 +1,9 @@
 from xmlrpc.client import FastUnmarshaller
-import numpy as np
 import streamlit as st
 import pandas as pd
 import pickle
-import keras
+
 from utils.functions import (
-    # add_polynomial_features,
-    # generate_data,
     get_model_tips,
     get_model_url,
     plot_prediction_and_metrics,
@@ -15,22 +12,15 @@ from utils.functions import (
     train_classification_model,
     train_keras_model,
     train_regression_model,
-    # output_csv,
 )
 
 from utils.ui import (
     dataset_selector,
-    footer,
-    #generate_snippet,
-    # polynomial_degree_selector,
     introduction,
     model_selector,
     parameter_selector,
     column_selector,
     column_display,
-    # zip_dir,
-    createFolder,
-    # download_result,
 )
 
 st.set_page_config(
@@ -43,7 +33,8 @@ def resize_sidebar(width):
     <style>
         section[data-testid="stSidebar"] .css-zbg2rx {{width: {width}rem;}}
     </style>
-''',unsafe_allow_html=True)
+    ''',unsafe_allow_html=True)
+
 
 def update_run_counter(goal, labely):
     if "run_counter" not in st.session_state:
@@ -59,19 +50,19 @@ def update_run_counter(goal, labely):
     if (goal=='Classification') and (nclasses > 20):
         st.warning(f'Do you really want a classification? The number of class is {nclasses}.')
 
+
 def update_sidebar_size():
     if "size_counter" not in st.session_state:
         st.session_state.size_counter = False
-
     st.session_state.size_counter = not(st.session_state.size_counter)
-    # st.sidebar.write(st.session_state.size_counter)
 
 resize_sidebar(22)
 
 def sidebar_controllers():
     
     st.sidebar.info('''
-    This deployed version of app is only for testing purposes (1GB memory limit). For big computations, please [download local version](https://github.com/songwan/HTPPs).
+    This deployed version of app is only for testing purposes (1GB memory limit). 
+    For big computations, please [download local version](https://github.com/songwan/HTPPs).
     ''')
 
     with st.sidebar.expander("Configure a dataset", True):
@@ -89,8 +80,6 @@ def sidebar_controllers():
             st.form_submit_button('Expand/shrink sidebar', on_click=update_sidebar_size)
         st.form_submit_button('Update parameters', on_click=update_run_counter(goal, labely))
 
-        # footer()    
-    
     if "size_counter" not in st.session_state:
             st.session_state.size_counter = False
 
@@ -108,7 +97,6 @@ def sidebar_controllers():
     results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info, 'test_data_ratio': train_test_ratio}
 
     return (
-        #dataset,
         model_type,
         model,
         x_train,
@@ -141,8 +129,6 @@ def body(
 
     # if st.session_state.show_result:
     if run_body:
-        # introduction()
-
         st.subheader(f'{model_type} Results')
         col1, col2 = st.columns((1, 1))
         with col1:
@@ -157,10 +143,10 @@ def body(
             tips_placeholder = st.empty()
             history_placeholder = st.empty()
 
-        # x_train, x_test = add_polynomial_features(x_train, x_test, degree)
         model_url = get_model_url(model_type)
         
         st.sidebar.write('Download result')
+
         # 1) Rregression Models -> R-squared, MSE
         if model_type in ('Linear Regression', 'SVR'):
             (   
@@ -182,6 +168,7 @@ def body(
             }
 
             st.sidebar.download_button(label = 'Download model (pkl or h5)', data = pickle.dumps(model), file_name = 'model.pkl')
+
         # 2) Keras NN -> R-squared, MSE
         elif model_type in ('Keras Neural Network'):
             (   
@@ -220,10 +207,6 @@ def body(
 
             st.sidebar.download_button(label = 'Download model (pkl or h5)', data = pickle.dumps(model), file_name = 'model.pkl')
 
-        # with open('tmp_result/metrics.txt', 'w') as f:
-        #     for item in metrics.values(): # train rs, train mse, test sq, test mse
-        #         f.write(f'{item},')
-
         model_tips = get_model_tips(model_type)
 
         if model_type in ('SVR', 'Linear Regression'):
@@ -248,15 +231,12 @@ def body(
         plot_placeholder.plotly_chart(fig, True)
         duration_placeholder.warning(f"Training took {duration:.3f} seconds")
         model_url_placeholder.markdown(model_url)
-        # code_header_placeholder.header("**Retrain the same model in Python**")
-        # snippet_placeholder.code(snippet)
         tips_header_placeholder.subheader(f"Tips on the {model_type} 💡")
         tips_placeholder.info(model_tips)
         
         predicted_values = pd.concat([y_test.reset_index(drop=False, inplace=False), pd.DataFrame(y_test_pred)], axis=1, ignore_index=True)
         predicted_values.columns = ['index', 'y_test', 'pred']
         
-
         # save result
         lebely3 = None
         if labely is not None:
@@ -275,7 +255,6 @@ def body(
             'encoding_y': lebely3
         }
         
-        # st.write(metrics)
         df_result = pd.concat([pd.DataFrame([dict_result]), pd.DataFrame([metrics])], axis=1)
         df_result = df_result.to_csv(index=False).encode('utf-8')
         st.sidebar.download_button('Download model information (csv)', data=df_result, file_name='result.csv')
@@ -284,13 +263,14 @@ def body(
         st.subheader('Results')
         st.info("To display the result, select  the checkbox")
 
+
 def header():
     introduction()
+
 
 if __name__ == "__main__":
     header()
     (
-        #dataset,
         model_type,
         model,
         x_train,
@@ -307,14 +287,12 @@ if __name__ == "__main__":
         run_body,
         batch_size,
         ohe_info,
-        # degree,
     ) = sidebar_controllers()
     body(
         x_train,
         x_test,
         y_train,
         y_test,
-        # degree,
         model,
         model_type,
         epochs,

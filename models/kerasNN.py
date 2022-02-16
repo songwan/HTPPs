@@ -1,5 +1,4 @@
 from grpc import ssl_server_certificate_configuration
-from sklearn.metrics import classification_report
 import streamlit as st
 import tensorflow as tf
 import json
@@ -35,6 +34,7 @@ def layers_layout(goal, nclasses, number_layers):
 
                 if count == number_layers: 
                     return layer_sizes
+
 
 def activation_layout(goal, nclasses, number_layers):
     
@@ -75,6 +75,7 @@ def activation_layout(goal, nclasses, number_layers):
                 if count == number_layers: 
                     return layer_activations
 
+
 def kernel_init_layout(number_layers):
     kernel_init_list = ('VarianceScaling', 'TruncatedNormal','RandomUniform', 'RandomNormal', 'glorot_uniform', 'glorot_normal', 
     'he_uniform', 'he_normal', 'lecun_normal', 'lecun_uniform', 'Identity', 'Orthogonal', 'Constant', 'Ones', 'Zeros')
@@ -103,6 +104,7 @@ def kernel_init_layout(number_layers):
                 layer_kernelinits.append(n_activation)
                 if count == number_layers: 
                     return layer_kernelinits
+
 
 def knn_param_selector(goal, nclasses, input_shape=None):
     
