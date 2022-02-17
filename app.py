@@ -266,7 +266,7 @@ def body(
 
     else:
         st.subheader('Results')
-        st.info("To display the result, select  the checkbox")
+        st.info("To display the result, click 'Run the model' button at sidebar")
 
 
 def header():
