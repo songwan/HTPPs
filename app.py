@@ -99,7 +99,7 @@ def sidebar_controllers():
     with st.sidebar.form('Train model'):
         st.write('5. Train model')
         st.info('Please make sure that parameters were set as intended befor running the model')
-        run_body = st.form_submit_button('Run the model (always rerun)')
+        run_body = st.form_submit_button('Run the model')
 
     results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info, 'test_data_ratio': train_test_ratio}
 
