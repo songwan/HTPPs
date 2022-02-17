@@ -162,27 +162,27 @@ def column_display(current_data, x, ohe_info, labely, goal):
 
         if goal == 'Regression':
             st.warning('If you want regression on character Y, please make sure that the numerical encoding is as intended.')
-            st.write('- (Optional) you can also set user-defined encoding for character Y')
+            with st.expander("Expand to set your own Y encoding (optional)", expanded=False):
+                st.write("- This feature is useful when you are using ordinal Y")
+                labely_n = labely.shape[1]
+                labely_usr = eval(st.text_input("Enter your own encoding", "6,2,4,9,11,...,10"))
+                labely_usr_n = len(labely_usr)
 
-            labely_n = labely.shape[1]
-            labely_usr = eval(st.text_input("Y encoding (user-defined)", "6,2,4,9,11,...,10"))
-            labely_usr_n = len(labely_usr)
-
-            if (Ellipsis not in labely_usr):
-                if labely_usr_n==labely_n:
-                    labely.columns = labely_usr
-                    st.write(labely)
-                    y_enc_new = labely.columns.tolist()
-                else:
-                    st.error(f'The number of labels to encode is {labely_n} but have {labely_usr_n} encodings')
-            else: 
-                st.info(f'Please provide your own encoding to apply.')
+                if (Ellipsis not in labely_usr):
+                    if labely_usr_n==labely_n:
+                        labely.columns = labely_usr
+                        st.write(labely)
+                        y_enc_new = labely.columns.tolist()
+                    else:
+                        st.error(f'The number of labels to encode is {labely_n} but have {labely_usr_n} encodings')
+                # else: 
+                    # st.info(f'Please provide your own encoding to apply.')
 
     col_names = list(current_data.columns)
 
     if ohe_info.shape[0]!=0:
-        st.write('- One-hot encoding information for categorical X')
-        st.dataframe(ohe_info)
+        with st.expander('Expand to see the encoding details for categorical X (optional)', False):
+            st.dataframe(ohe_info)
 
     st.markdown(
         """
