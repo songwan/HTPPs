@@ -65,20 +65,22 @@ def sidebar_controllers():
     For big computations, please [download local version](https://github.com/songwan/HTPPs).
     ''')
 
-    with st.sidebar.expander("Configure a dataset", True):
+    with st.sidebar.expander("1. Configure a dataset", True):
         current_data = dataset_selector() # loads global variable current_data 
 
-    with st.sidebar.form('Options form'):
-
+    with st.sidebar.expander('2. Select X and Y', True):
         x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x, train_test_ratio = column_selector(current_data)
+
+    with st.sidebar.expander('3. Select Model', True):
         model_type = model_selector(goal)
 
+    with st.sidebar.expander('4. Select parameters', True):
         validation_split, epochs, batch_size, model, json_param = parameter_selector(model_type, goal, nclasses, input_shape=input_shape)
 
-
+    with st.sidebar.form('Expand/shrink sidebar'):
         if model_type in ('Keras Neural Network'):
             st.form_submit_button('Expand/shrink sidebar', on_click=update_sidebar_size)
-        st.form_submit_button('Update parameters', on_click=update_run_counter(goal, labely))
+
 
     if "size_counter" not in st.session_state:
             st.session_state.size_counter = False
@@ -90,9 +92,14 @@ def sidebar_controllers():
         else:
             resize_sidebar(22)
 
-    with st.sidebar.expander('Train model', True):
+    # with st.sidebar.expander('5. Train model', True):
+    #     st.info('Please make sure that parameters were set as intended befor running the model')
+    #     run_body = st.checkbox('Run the model (always rerun)', False)
+
+    with st.sidebar.form('Train model'):
+        st.write('5. Train model')
         st.info('Please make sure that parameters were set as intended befor running the model')
-        run_body = st.checkbox('Run the model (always rerun)', False)
+        run_body = st.form_submit_button('Run the model (always rerun)')
 
     results = {'json_param':json_param, 'name_y':var_names['y'], 'name_x':var_names['x'].tolist(), 'ohe_info':ohe_info, 'test_data_ratio': train_test_ratio}
 

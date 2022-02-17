@@ -214,8 +214,8 @@ def column_selector(current_data):
     
     st.info(
     """
-        - Use ',' for single selection
-        - Use ':' for sequence selection
+    - Use ',' for single selection
+    - Use ':' for sequence selection
     """
     )
 
