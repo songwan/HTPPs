@@ -84,8 +84,8 @@ def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labe
                          color="white" if cm[i, j] > thresh else "black")
  
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.ylabel('Predicted label')
+    plt.xlabel('True label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
     
     return fig
 
@@ -94,7 +94,7 @@ def plot_classification_and_metrics(
         y_train, y_test, metrics, y_train_pred, y_test_pred, labely
 ):  
     conf_mat = confusion_matrix(y_test, y_test_pred)
-    fig_conf = plot_confusion_matrix(conf_mat, target_names=labely.transpose()[0].tolist(), title="Contingency matrix", normalize=False)
+    fig_conf = plot_confusion_matrix(conf_mat.transpose(), target_names=labely.transpose()[0].tolist(), title="Contingency matrix", normalize=False)
     
     fig = make_subplots(
         rows=1,
