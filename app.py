@@ -35,22 +35,6 @@ def resize_sidebar(width):
     </style>
     ''',unsafe_allow_html=True)
 
-
-def update_run_counter(goal, labely):
-    if "run_counter" not in st.session_state:
-        st.session_state.run_counter = 0
-
-    st.session_state.run_counter +=1
-    
-    if labely is not None:
-        nclasses = len(labely.transpose())
-    else:
-        nclasses = None
-
-    if (goal=='Classification') and (nclasses > 20):
-        st.warning(f'Do you really want a classification? The number of class is {nclasses}.')
-
-
 def update_sidebar_size():
     if "size_counter" not in st.session_state:
         st.session_state.size_counter = False
@@ -70,6 +54,14 @@ def sidebar_controllers():
 
     with st.sidebar.expander('2. Select X and Y', True):
         x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x, train_test_ratio = column_selector(current_data)
+
+        if labely is not None:
+            nclasses = len(labely.transpose())
+        else:
+            nclasses = None
+
+        if (goal=='Classification') and (nclasses > 20):
+            st.error(f'Do you really want a classification? The number of class is {nclasses}.')
 
     with st.sidebar.expander('3. Select Model', True):
         model_type = model_selector(goal)
@@ -91,10 +83,6 @@ def sidebar_controllers():
             resize_sidebar(55)
         else:
             resize_sidebar(22)
-
-    # with st.sidebar.expander('5. Train model', True):
-    #     st.info('Please make sure that parameters were set as intended befor running the model')
-    #     run_body = st.checkbox('Run the model (always rerun)', False)
 
     with st.sidebar.form('Train model'):
         st.write('5. Train model')
