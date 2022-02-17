@@ -152,8 +152,6 @@ def body(
 
         model_url = get_model_url(model_type)
         
-        st.sidebar.write('Download result')
-
         # 1) Rregression Models -> R-squared, MSE
         if model_type in ('Linear Regression', 'SVR'):
             (   
