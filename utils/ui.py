@@ -216,6 +216,7 @@ def column_selector(current_data):
     """
     - Use ',' for single selection
     - Use ':' for sequence selection
+    - Note that including a variable used as Y in X will produce an error
     """
     )
 

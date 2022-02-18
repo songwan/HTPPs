@@ -54,7 +54,6 @@ def sidebar_controllers():
 
     with st.sidebar.expander('2. Select X and Y', True):
         x_train, y_train, x_test, y_test, input_shape, goal, nclasses, labely, var_names, ohe_info, x, train_test_ratio = column_selector(current_data)
-
         if labely is not None:
             nclasses = len(labely.transpose())
         else:
