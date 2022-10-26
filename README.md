@@ -41,6 +41,7 @@ pip install pipenv
 
 ```shell
 pipenv install
+pipenv shell
 ```
 
 - run the app

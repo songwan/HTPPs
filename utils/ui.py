@@ -202,16 +202,20 @@ def column_selector(current_data):
     df_dtype = current_data.dtypes.astype(str)    
     col_names = list(current_data.columns)
 
-    if current_data.shape[1] < 10: # for iris sample
-        yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=0)
-    else:
-        yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=73) # 'HT2.x'
-        
-    if current_data.shape[1] < 10: # for iris sample
-        xx = st.text_input(label='Predictors (X)', value=f'{col_names[1]}, {col_names[2]}:{col_names[3]}')
-    else:
-        xx = st.text_input(label='Predictors (X)', value=f'{col_names[74]}, {col_names[75]}, {col_names[77]}:{col_names[95]}')
+    #if current_data.shape[1] < 10: # for iris sample
+    #    yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=0)
+    #else:
+    #    yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=73) # 'HT2.x'
     
+    yy = st.selectbox(label='Phenotype to predict (Y)', options=col_names, index=0) # 'HT2.x'
+
+    #if current_data.shape[1] < 10: # for iris sample
+    #    xx = st.text_input(label='Predictors (X)', value=f'{col_names[1]}, {col_names[2]}:{col_names[3]}')
+    #else:
+    #    xx = st.text_input(label='Predictors (X)', value=f'{col_names[74]}, {col_names[75]}, {col_names[77]}:{col_names[95]}')
+    
+    xx = st.text_input(label='Predictors (X)', value=f'{col_names[1]}, {col_names[2]}:{col_names[3]}')
+
     st.info(
     """
     - Use ',' for single selection
